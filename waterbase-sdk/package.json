@@ -1,0 +1,20 @@
+{
+    "name": "waterbase-sdk",
+    "version": "3.0.0",
+    "description": "Waterbase SDK - Firebase-like backend SDK for JavaScript",
+    "main": "index.js",
+    "type": "module",
+    "keywords": [
+        "waterbase",
+        "backend",
+        "firebase",
+        "database",
+        "realtime",
+        "storage"
+    ],
+    "author": "Waterbase Team",
+    "license": "MIT",
+    "dependencies": {
+        "socket.io-client": "^4.7.2"
+    }
+}

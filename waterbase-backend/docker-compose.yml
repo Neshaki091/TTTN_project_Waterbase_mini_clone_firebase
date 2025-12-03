@@ -1,0 +1,376 @@
+version: "3.9"
+
+services:
+  # ============================================
+  # ========== 1. INFRASTRUCTURE LAYER =========
+  # ============================================
+
+  mongo:
+    image: mongo:7
+    container_name: mongo
+    command: ["mongod", "--wiredTigerCacheSizeGB", "0.25"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - waterbase_network
+    mem_limit: 400m
+    restart: always
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand({ ping: 1 })"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis-cache:
+    image: redis:alpine
+    container_name: redis_cache
+    ports:
+      - "6379:6379"
+    networks:
+      - waterbase_network
+    mem_limit: 50m
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    networks:
+      - waterbase_network
+    mem_limit: 200m
+    restart: always
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # ========== 2. MICROSERVICES LAYER ==========
+  # ============================================
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: ./services/auth-services/Dockerfile
+    container_name: auth-services
+    ports:
+      - "3000:3000"
+    environment:
+      MONGO_URI: ${MONGO_URI_AUTH:-mongodb://mongo:27017/auth_service}
+      JWT_SECRET: ${JWT_SECRET}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+      NODE_OPTIONS: "--max-old-space-size=128"
+    volumes:
+      - ./services/auth-services:/usr/src/app
+      - ./services/shared:/usr/src/app/shared
+      - /usr/src/app/node_modules
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - waterbase_network
+    mem_limit: 180m
+    restart: always
+    healthcheck:
+      test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  rule-service:
+    build:
+      context: .
+      dockerfile: ./services/rule-services/Dockerfile
+    container_name: rule-services
+    ports:
+      - "3004:3004"
+    environment:
+      MONGO_URI: ${MONGO_URI_RULE:-mongodb://mongo:27017/rule_services}
+      JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_SECRET: ${INTERNAL_SECRET}
+      NODE_OPTIONS: "--max-old-space-size=128"
+    volumes:
+      - ./services/rule-services:/app
+      - /app/node_modules
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - waterbase_network
+    mem_limit: 180m
+    restart: always
+    healthcheck:
+      test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  app-service:
+    build:
+      context: .
+      dockerfile: ./services/app-services/Dockerfile
+    container_name: app-services
+    ports:
+      - "3001:3001"
+    environment:
+      MONGO_URI: ${MONGO_URI_APP:-mongodb://mongo:27017/waterbase_app}
+      JWT_SECRET: ${JWT_SECRET}
+      NODE_OPTIONS: "--max-old-space-size=128"
+    volumes:
+      - ./services/app-services:/app
+      - ./services/shared:/app/shared
+      - /app/node_modules
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      rule-service:
+        condition: service_started
+    networks:
+      - waterbase_network
+    mem_limit: 200m
+    restart: always
+    healthcheck:
+      test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  waterdb-service:
+    build:
+      context: .
+      dockerfile: ./services/waterdb-services/Dockerfile
+    container_name: waterdb-services
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      MONGO_URI: ${MONGO_URI_WATERDB:-mongodb://mongo:27017/waterdb}
+      JWT_SECRET: ${JWT_SECRET}
+      RULE_ENGINE_URL: http://rule-service:3004
+      INTERNAL_SECRET: ${INTERNAL_SECRET}
+      RT_SERVICE_URL: http://rtwaterdb-service:3005/internal/events
+      INTERNAL_RPC_TOKEN: ${INTERNAL_RPC_TOKEN}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+      NODE_OPTIONS: "--max-old-space-size=128"
+    volumes:
+      - ./services/waterdb-services:/app
+      - ./services/shared:/app/shared
+      - /app/node_modules
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      rule-service:
+        condition: service_started
+      rtwaterdb-service:
+        condition: service_started
+    networks:
+      - waterbase_network
+    mem_limit: 220m
+    restart: always
+    healthcheck:
+      test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  rtwaterdb-service:
+    build:
+      context: .
+      dockerfile: ./services/rtwaterdb-services/Dockerfile
+    container_name: rtwaterdb-services
+    ports:
+      - "3005:3005"
+    environment:
+      PORT: 3005
+      REDIS_URL: redis://redis-cache:6379
+      MONGO_URI: ${MONGO_URI_RT:-mongodb://mongo:27017/rtwaterdb}
+      JWT_SECRET: ${JWT_SECRET}
+      INTERNAL_RPC_TOKEN: ${INTERNAL_RPC_TOKEN}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+      NODE_OPTIONS: "--max-old-space-size=128"
+    volumes:
+      - ./services/rtwaterdb-services:/app
+      - ./services/shared:/app/shared
+      - /app/node_modules
+    depends_on:
+      redis-cache:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - waterbase_network
+    mem_limit: 200m
+    restart: always
+    healthcheck:
+      test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  storage-service:
+    build:
+      context: .
+      dockerfile: ./services/storage-services/Dockerfile
+    container_name: storage-services
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      JWT_SECRET: ${JWT_SECRET}
+      MONGO_URI: ${MONGO_URI_STORAGE:-mongodb://mongo:27017/waterbase}
+      AUTH_SERVICE_URL: http://auth-service:3000
+      STORAGE_DIR: /app/storage
+      RABBITMQ_URL: ${RABBITMQ_URL}
+      NODE_OPTIONS: "--max-old-space-size=128"
+    volumes:
+      - storage_data:/app/storage
+      - ./services/storage-services:/app
+      - ./services/shared:/app/shared
+      - /app/node_modules
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    networks:
+      - waterbase_network
+    mem_limit: 150m
+    restart: always
+    healthcheck:
+      test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  analytics-service:
+    build:
+      context: .
+      dockerfile: ./services/analytics-service/Dockerfile
+    container_name: analytics-services
+    ports:
+      - "3006:3006"
+    environment:
+      PORT: 3006
+      MONGO_URI: ${MONGO_URI_ANALYTICS:-mongodb://mongo:27017/analytics}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      NODE_OPTIONS: "--max-old-space-size=256"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - waterbase_network
+    mem_limit: 300m
+    restart: always
+    healthcheck:
+      test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  # ============================================
+  # ========== 3. GATEWAY LAYER ================
+  # ============================================
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    restart: always
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      rule-service:
+        condition: service_healthy
+      waterdb-service:
+        condition: service_healthy
+      rtwaterdb-service:
+        condition: service_healthy
+      storage-service:
+        condition: service_healthy
+      analytics-service:
+        condition: service_healthy
+      app-service:
+        condition: service_healthy
+    networks:
+      - waterbase_network
+    mem_limit: 50m
+
+  # ============================================
+  # ========== 4. CLOUDFLARE TUNNEL ============
+  # ============================================
+
+  cloudflare:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --config /etc/cloudflared/config.yml run
+    volumes:
+      - ./config.yml:/etc/cloudflared/config.yml:ro
+      - ./creds:/etc/cloudflared/creds:ro
+    environment:
+      credentials-file: /etc/cloudflared/creds/c59d0882-668b-493e-823b-7ce232ab4210.json
+    networks:
+      - waterbase_network
+    mem_limit: 50m
+    depends_on:
+      nginx:
+        condition: service_started
+
+# ============================================
+# =============== VOLUMES ====================
+# ============================================
+
+volumes:
+  mongo_data:
+  storage_data:
+
+# ============================================
+# =============== NETWORKS ===================
+# ============================================
+
+networks:
+  waterbase_network:
+    driver: bridge
