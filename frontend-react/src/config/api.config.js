@@ -1,5 +1,5 @@
 // API Configuration for waterbase-backend
-const API_ORIGIN = ('http://localhost').replace(/\/$/, '');
+const API_ORIGIN = ('https://api.waterbase.click').replace(/\/$/, '');
 const API_BASE = `${API_ORIGIN}`;
 
 export const API_ENDPOINTS = {
