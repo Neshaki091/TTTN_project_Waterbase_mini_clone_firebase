@@ -4,6 +4,7 @@ const router = express.Router();
 const controller = require('../controllers/waterdb.controller');
 const { authenticateUser } = require('../../shared/middlewares/auth.middleware');
 const { checkAction } = require('../../shared/middlewares/rule.middleware');
+const { checkQuota } = require('../middlewares/quota.middleware');
 
 const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
@@ -40,11 +41,11 @@ router.get('/collections', checkAction('read'), asyncHandler(controller.getColle
 
 // /:collectionName
 router.get('/:collectionName', checkAction('read'), asyncHandler(controller.getCollection));
-router.post('/:collectionName', checkAction('create'), asyncHandler(controller.createDocument));
+router.post('/:collectionName', checkQuota, checkAction('create'), asyncHandler(controller.createDocument));
 
 // /:collectionName/:docId
 router.get('/:collectionName/:documentId', checkAction('read'), asyncHandler(controller.getDocument));
-router.put('/:collectionName/:documentId', checkAction('update'), asyncHandler(controller.updateDocument));
+router.put('/:collectionName/:documentId', checkQuota, checkAction('update'), asyncHandler(controller.updateDocument));
 router.delete('/:collectionName/:documentId', checkAction('delete'), asyncHandler(controller.deleteDocument));
 
 module.exports = router;

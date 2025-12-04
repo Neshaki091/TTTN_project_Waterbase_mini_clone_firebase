@@ -8,14 +8,20 @@ services:
   mongo:
     image: mongo:7
     container_name: mongo
-    command: ["mongod", "--wiredTigerCacheSizeGB", "0.25"]
+    command: ["mongod", "--wiredTigerCacheSizeGB", "0.15"]
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
     networks:
       - waterbase_network
-    mem_limit: 400m
+    mem_limit: 300m
+    deploy:
+      resources:
+        limits:
+          memory: 300m
+        reservations:
+          memory: 200m
     restart: always
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.runCommand({ ping: 1 })"]
@@ -30,7 +36,13 @@ services:
       - "6379:6379"
     networks:
       - waterbase_network
-    mem_limit: 50m
+    mem_limit: 40m
+    deploy:
+      resources:
+        limits:
+          memory: 40m
+        reservations:
+          memory: 20m
     restart: always
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -49,7 +61,13 @@ services:
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     networks:
       - waterbase_network
-    mem_limit: 200m
+    mem_limit: 180m
+    deploy:
+      resources:
+        limits:
+          memory: 180m
+        reservations:
+          memory: 128m
     restart: always
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "check_running"]
@@ -84,7 +102,13 @@ services:
         condition: service_healthy
     networks:
       - waterbase_network
-    mem_limit: 180m
+    mem_limit: 160m
+    deploy:
+      resources:
+        limits:
+          memory: 160m
+        reservations:
+          memory: 128m
     restart: always
     healthcheck:
       test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
@@ -115,7 +139,13 @@ services:
         condition: service_healthy
     networks:
       - waterbase_network
-    mem_limit: 180m
+    mem_limit: 160m
+    deploy:
+      resources:
+        limits:
+          memory: 160m
+        reservations:
+          memory: 128m
     restart: always
     healthcheck:
       test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
@@ -150,7 +180,13 @@ services:
         condition: service_started
     networks:
       - waterbase_network
-    mem_limit: 200m
+    mem_limit: 180m
+    deploy:
+      resources:
+        limits:
+          memory: 180m
+        reservations:
+          memory: 128m
     restart: always
     healthcheck:
       test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
@@ -193,7 +229,13 @@ services:
         condition: service_started
     networks:
       - waterbase_network
-    mem_limit: 220m
+    mem_limit: 180m
+    deploy:
+      resources:
+        limits:
+          memory: 180m
+        reservations:
+          memory: 140m
     restart: always
     healthcheck:
       test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
@@ -232,7 +274,13 @@ services:
         condition: service_started
     networks:
       - waterbase_network
-    mem_limit: 200m
+    mem_limit: 180m
+    deploy:
+      resources:
+        limits:
+          memory: 180m
+        reservations:
+          memory: 128m
     restart: always
     healthcheck:
       test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
@@ -270,7 +318,13 @@ services:
         condition: service_started
     networks:
       - waterbase_network
-    mem_limit: 150m
+    mem_limit: 130m
+    deploy:
+      resources:
+        limits:
+          memory: 130m
+        reservations:
+          memory: 90m
     restart: always
     healthcheck:
       test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
@@ -291,7 +345,7 @@ services:
       MONGO_URI: ${MONGO_URI_ANALYTICS:-mongodb://mongo:27017/analytics}
       RABBITMQ_URL: ${RABBITMQ_URL}
       JWT_SECRET: ${JWT_SECRET}
-      NODE_OPTIONS: "--max-old-space-size=256"
+      NODE_OPTIONS: "--max-old-space-size=220"
     depends_on:
       mongo:
         condition: service_healthy
@@ -299,7 +353,13 @@ services:
         condition: service_healthy
     networks:
       - waterbase_network
-    mem_limit: 300m
+    mem_limit: 250m
+    deploy:
+      resources:
+        limits:
+          memory: 250m
+        reservations:
+          memory: 200m
     restart: always
     healthcheck:
       test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
@@ -337,7 +397,13 @@ services:
         condition: service_healthy
     networks:
       - waterbase_network
-    mem_limit: 50m
+    mem_limit: 40m
+    deploy:
+      resources:
+        limits:
+          memory: 40m
+        reservations:
+          memory: 20m
 
   # ============================================
   # ========== 4. CLOUDFLARE TUNNEL ============
@@ -354,7 +420,13 @@ services:
       credentials-file: /etc/cloudflared/creds/c59d0882-668b-493e-823b-7ce232ab4210.json
     networks:
       - waterbase_network
-    mem_limit: 50m
+    mem_limit: 40m
+    deploy:
+      resources:
+        limits:
+          memory: 40m
+        reservations:
+          memory: 20m
     depends_on:
       nginx:
         condition: service_started

@@ -79,6 +79,15 @@ module.exports = (io) => {
             } catch (error) {
                 res.status(error.status || 500).json({ message: error.message });
             }
+        },
+
+        getStats: async (req, res) => {
+            try {
+                const stats = await rtwaterdbService.getStats(req.appId);
+                res.json(stats);
+            } catch (error) {
+                res.status(500).json({ message: error.message });
+            }
         }
     };
 };

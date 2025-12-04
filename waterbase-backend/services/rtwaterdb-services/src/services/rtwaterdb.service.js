@@ -90,3 +90,50 @@ exports.deleteDocument = async (appId, collection, documentId) => {
 
     return doc;
 };
+
+exports.getStats = async (appId) => {
+    const totalCollections = (await DynamicDocument.distinct('collection', { appId })).length;
+    const totalDocuments = await DynamicDocument.countDocuments({ appId });
+
+    // Calculate storage usage
+    const storageUsage = await exports.getStorageUsage(appId);
+
+    return {
+        totalCollections,
+        totalDocuments,
+        usedBytes: storageUsage.usedBytes
+    };
+};
+
+exports.getStorageUsage = async (appId) => {
+    // Aggregate to calculate approximate storage size
+    const result = await DynamicDocument.aggregate([
+        { $match: { appId } },
+        {
+            $project: {
+                // Estimate size: JSON.stringify length is a good approximation
+                // MongoDB stores BSON which is slightly larger, so we add 20% overhead
+                size: {
+                    $add: [
+                        { $strLenBytes: { $toString: '$data' } },
+                        { $strLenBytes: '$documentId' },
+                        { $strLenBytes: '$collection' },
+                        { $strLenBytes: '$appId' },
+                        100 // Overhead for metadata, timestamps, etc.
+                    ]
+                }
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                totalSize: { $sum: '$size' }
+            }
+        }
+    ]);
+
+    const usedBytes = result.length > 0 ? result[0].totalSize : 0;
+
+    return { usedBytes };
+};
+

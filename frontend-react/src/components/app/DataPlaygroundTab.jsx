@@ -13,11 +13,17 @@ import {
 } from 'react-icons/fi';
 import databaseService from '../../services/database.service';
 import realtimeService from '../../services/realtime.service';
+import appService from '../../services/app.service';
 import Button from '../common/Button';
 import Input from '../common/Input';
+import ServiceUsageCard from '../common/ServiceUsageCard';
 
 const DataPlaygroundTab = ({ appId }) => {
   // --- State ---
+  // Usage Stats
+  const [waterdbUsage, setWaterdbUsage] = useState(null);
+  const [usageLoading, setUsageLoading] = useState(true);
+
   // Simulation
   const [simulateUser, setSimulateUser] = useState(false);
   const [userToken, setUserToken] = useState('');
@@ -44,8 +50,22 @@ const DataPlaygroundTab = ({ appId }) => {
   useEffect(() => {
     if (appId) {
       localStorage.setItem('currentAppId', appId);
+      loadUsageStats();
     }
   }, [appId]);
+
+  // Load usage stats
+  const loadUsageStats = async () => {
+    try {
+      setUsageLoading(true);
+      const data = await appService.getWaterDBUsage(appId);
+      setWaterdbUsage(data);
+    } catch (error) {
+      console.error('Failed to load usage stats:', error);
+    } finally {
+      setUsageLoading(false);
+    }
+  };
 
   // 2. Handle Simulation Token
   useEffect(() => {
@@ -287,6 +307,15 @@ const DataPlaygroundTab = ({ appId }) => {
           </div>
         </div>
       </div>
+
+      {/* Usage Stats */}
+      <ServiceUsageCard
+        title="WaterDB Storage"
+        icon={FiDatabase}
+        usage={waterdbUsage}
+        loading={usageLoading}
+        compact={true}
+      />
 
       {/* Simulation Token Input (Conditional) */}
       {simulateUser && (

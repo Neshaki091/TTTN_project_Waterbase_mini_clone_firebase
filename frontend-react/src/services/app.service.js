@@ -43,6 +43,22 @@ export const appService = {
     const response = await apiClient.management.post(`/${id}/regenerate-key`);
     return response.data;
   },
+
+  // Get WaterDB usage stats
+  getWaterDBUsage: async (appId) => {
+    const response = await apiClient.database.get('/stats', {
+      headers: { 'x-app-id': appId }
+    });
+    return response.data;
+  },
+
+  // Get RTWaterDB usage stats
+  getRTWaterDBUsage: async (appId) => {
+    const response = await apiClient.realtime.get('/stats', {
+      headers: { 'x-app-id': appId }
+    });
+    return response.data;
+  },
 };
 
 export default appService;
