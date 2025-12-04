@@ -8,7 +8,7 @@ services:
   mongo:
     image: mongo:7
     container_name: mongo
-    command: ["mongod", "--wiredTigerCacheSizeGB", "0.15"]
+    command: ["mongod", "--wiredTigerCacheSizeGB", "0.25"]
     ports:
       - "27017:27017"
     volumes:

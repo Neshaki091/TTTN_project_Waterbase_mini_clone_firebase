@@ -106,34 +106,22 @@ exports.getStats = async (appId) => {
 };
 
 exports.getStorageUsage = async (appId) => {
-    // Aggregate to calculate approximate storage size
-    const result = await DynamicDocument.aggregate([
-        { $match: { appId } },
-        {
-            $project: {
-                // Estimate size: JSON.stringify length is a good approximation
-                // MongoDB stores BSON which is slightly larger, so we add 20% overhead
-                size: {
-                    $add: [
-                        { $strLenBytes: { $toString: '$data' } },
-                        { $strLenBytes: '$documentId' },
-                        { $strLenBytes: '$collection' },
-                        { $strLenBytes: '$appId' },
-                        100 // Overhead for metadata, timestamps, etc.
-                    ]
-                }
-            }
-        },
-        {
-            $group: {
-                _id: null,
-                totalSize: { $sum: '$size' }
-            }
+    try {
+        // Get all documents for this app
+        const documents = await DynamicDocument.find({ appId }).lean();
+
+        // Calculate total size
+        let totalSize = 0;
+        for (const doc of documents) {
+            // Estimate size using JSON.stringify
+            const jsonSize = JSON.stringify(doc).length;
+            totalSize += jsonSize;
         }
-    ]);
 
-    const usedBytes = result.length > 0 ? result[0].totalSize : 0;
-
-    return { usedBytes };
+        return { usedBytes: totalSize };
+    } catch (error) {
+        console.error('Error calculating storage usage:', error);
+        return { usedBytes: 0 };
+    }
 };
 

@@ -12,12 +12,18 @@ import {
     FiCheckCircle
 } from 'react-icons/fi';
 import rtwaterdbService from '../../services/rtwaterdb.service';
+import appService from '../../services/app.service';
 import useRealtime from '../../hooks/useRealtime';
 import Button from '../common/Button';
 import Input from '../common/Input';
+import ServiceUsageCard from '../common/ServiceUsageCard';
 
 const RealtimeDataPlaygroundTab = ({ appId }) => {
     // --- State ---
+    // Usage Stats
+    const [rtWaterdbUsage, setRtWaterdbUsage] = useState(null);
+    const [usageLoading, setUsageLoading] = useState(true);
+
     const [collections, setCollections] = useState([]);
     const [documents, setDocuments] = useState([]);
     const [selectedCollection, setSelectedCollection] = useState(null);
@@ -42,8 +48,22 @@ const RealtimeDataPlaygroundTab = ({ appId }) => {
         if (appId) {
             localStorage.setItem('currentAppId', appId);
             fetchCollections();
+            loadUsageStats();
         }
     }, [appId]);
+
+    // Load usage stats
+    const loadUsageStats = async () => {
+        try {
+            setUsageLoading(true);
+            const data = await appService.getRTWaterDBUsage(appId);
+            setRtWaterdbUsage(data);
+        } catch (error) {
+            console.error('Failed to load RTWaterDB usage stats:', error);
+        } finally {
+            setUsageLoading(false);
+        }
+    };
 
     // Handle realtime events
     useEffect(() => {
@@ -278,6 +298,15 @@ const RealtimeDataPlaygroundTab = ({ appId }) => {
                     ⚠️ Lỗi kết nối Realtime: {realtimeError.message || 'Lỗi không xác định'}
                 </div>
             )}
+
+            {/* Usage Stats */}
+            <ServiceUsageCard
+                title="RTWaterDB Storage"
+                icon={FiActivity}
+                usage={rtWaterdbUsage}
+                loading={usageLoading}
+                compact={true}
+            />
 
             {/* Main 3-Column Layout */}
             <div className="flex-1 grid grid-cols-12 gap-4 min-h-0">

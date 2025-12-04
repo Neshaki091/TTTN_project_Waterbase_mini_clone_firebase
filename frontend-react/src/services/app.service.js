@@ -46,7 +46,7 @@ export const appService = {
 
   // Get WaterDB usage stats
   getWaterDBUsage: async (appId) => {
-    const response = await apiClient.database.get('/stats', {
+    const response = await apiClient.usage.get('/stats', {
       headers: { 'x-app-id': appId }
     });
     return response.data;
@@ -54,7 +54,7 @@ export const appService = {
 
   // Get RTWaterDB usage stats
   getRTWaterDBUsage: async (appId) => {
-    const response = await apiClient.realtime.get('/stats', {
+    const response = await apiClient.rtUsage.get('/stats', {
       headers: { 'x-app-id': appId }
     });
     return response.data;

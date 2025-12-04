@@ -211,42 +211,6 @@ const OverviewTab = ({ app, appId }) => {
         )}
       </Card>
 
-      {/* Integration Guide */}
-      <Card>
-        <h2 className="text-xl font-semibold text-white mb-4">Tích hợp nhanh</h2>
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm text-gray-400 mb-2 block">JavaScript/Node.js</label>
-            <pre className="bg-gray-900 border border-gray-700 rounded p-4 text-sm text-gray-300 overflow-x-auto">
-              {`import axios from 'axios';
-
-const api = axios.create({
-  baseURL: '${API_ENDPOINTS.DATABASE.BASE}',
-  headers: {
-    'x-app-id': '${appId}',
-    'Content-Type': 'application/json'
-  }
-});
-
-// Create document
-await api.post('/users', {
-  name: 'John Doe',
-  email: 'john@example.com'
-});`}
-            </pre>
-          </div>
-
-          <div>
-            <label className="text-sm text-gray-400 mb-2 block">cURL</label>
-            <pre className="bg-gray-900 border border-gray-700 rounded p-4 text-sm text-gray-300 overflow-x-auto">
-              {`curl -X POST "${API_ENDPOINTS.DATABASE.BASE}/users" \\
-  -H "x-app-id: ${appId}" \\
-  -H "Content-Type: application/json" \\
-  -d '{"name": "John Doe", "email": "john@example.com"}'`}
-            </pre>
-          </div>
-        </div>
-      </Card>
     </div>
   );
 };
