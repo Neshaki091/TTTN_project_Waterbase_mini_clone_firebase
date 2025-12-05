@@ -90,6 +90,19 @@ const adminService = {
             throw error;
         }
     },
+
+    // Get all deleted apps (admin only)
+    getDeletedApps: async () => {
+        const response = await apiClient.management.get('/deleted');
+        return response.data;
+    },
+
+    // Permanently delete an app (admin only)
+    permanentlyDeleteApp: async (appId) => {
+        const response = await apiClient.management.delete(`/${appId}/permanent`);
+        return response.data;
+    },
+
 };
 
 export default adminService;

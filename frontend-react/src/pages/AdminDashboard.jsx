@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FiUsers, FiPackage, FiDatabase, FiHardDrive, FiTrendingUp } from 'react-icons/fi';
+import { FiUsers, FiPackage, FiDatabase, FiHardDrive, FiTrendingUp, FiTrash2 } from 'react-icons/fi';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import adminService from '../services/admin.service';
 import { useApp } from '../context/AppContext';
@@ -13,8 +13,10 @@ const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const { isAdmin } = useApp();
-    const [activeTab, setActiveTab] = useState('system'); // 'system' or 'owners'
+    const [activeTab, setActiveTab] = useState('system'); // 'system', 'owners', or 'deleted'
     const [loading, setLoading] = useState(true);
+    const [deletedApps, setDeletedApps] = useState([]);
+    const [deletedAppsLoading, setDeletedAppsLoading] = useState(false);
     const [stats, setStats] = useState({
         totalOwners: 0,
         newOwnersThisMonth: 0,
@@ -46,12 +48,42 @@ const AdminDashboard = () => {
         }
     };
 
+    const loadDeletedApps = async () => {
+        try {
+            setDeletedAppsLoading(true);
+            const data = await adminService.getDeletedApps();
+            setDeletedApps(data);
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Không thể tải danh sách app đã xóa');
+        } finally {
+            setDeletedAppsLoading(false);
+        }
+    };
+
+    const handlePermanentDelete = async (appId, appName) => {
+        if (!window.confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN app "${appName}"?\n\nHành động này KHÔNG THỂ HOÀN TÁC!`)) {
+            return;
+        }
+
+        try {
+            await adminService.permanentlyDeleteApp(appId);
+            toast.success('App đã được xóa vĩnh viễn khỏi database');
+            loadDeletedApps(); // Reload the list
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Không thể xóa vĩnh viễn app');
+        }
+    };
+
     const formatBytes = (bytes) => {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
         const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    };
+
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleString('vi-VN');
     };
 
     if (loading) {
@@ -90,6 +122,18 @@ const AdminDashboard = () => {
                         }`}
                 >
                     Chi tiết theo Owner
+                </button>
+                <button
+                    onClick={() => {
+                        setActiveTab('deleted');
+                        loadDeletedApps();
+                    }}
+                    className={`px-4 py-2 font-medium transition-colors ${activeTab === 'deleted'
+                        ? 'text-blue-400 border-b-2 border-blue-400'
+                        : 'text-gray-400 hover:text-gray-300'
+                        }`}
+                >
+                    App đã xóa
                 </button>
             </div>
 
@@ -222,6 +266,80 @@ const AdminDashboard = () => {
                             </p>
                         </Card>
                     </div>
+                </div>
+            )}
+
+            {/* Deleted Apps Tab */}
+            {activeTab === 'deleted' && (
+                <div className="space-y-6">
+                    <Card>
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-semibold text-white flex items-center">
+                                    <FiTrash2 className="mr-2" />
+                                    Danh sách App đã xóa ({deletedApps.length})
+                                </h3>
+                            </div>
+
+                            {deletedAppsLoading ? (
+                                <div className="text-center py-8">
+                                    <p className="text-gray-400">Đang tải...</p>
+                                </div>
+                            ) : deletedApps.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <FiTrash2 className="mx-auto text-gray-600 mb-3" size={48} />
+                                    <p className="text-gray-400">Không có app nào đã bị xóa</p>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead>
+                                            <tr className="border-b border-gray-700">
+                                                <th className="text-left py-3 px-4 text-gray-400 font-medium">Tên App</th>
+                                                <th className="text-left py-3 px-4 text-gray-400 font-medium">App ID</th>
+                                                <th className="text-left py-3 px-4 text-gray-400 font-medium">Owner</th>
+                                                <th className="text-left py-3 px-4 text-gray-400 font-medium">Ngày xóa</th>
+                                                <th className="text-left py-3 px-4 text-gray-400 font-medium">Hành động</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {deletedApps.map((app) => (
+                                                <tr key={app.appId} className="border-b border-gray-700 hover:bg-gray-800/50">
+                                                    <td className="py-3 px-4">
+                                                        <div>
+                                                            <p className="text-white font-medium">{app.name}</p>
+                                                            <p className="text-xs text-gray-500">{app.description || 'Không có mô tả'}</p>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3 px-4">
+                                                        <code className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded">{app.appId}</code>
+                                                    </td>
+                                                    <td className="py-3 px-4">
+                                                        <div>
+                                                            <p className="text-gray-300">{app.ownerEmail || 'Unknown'}</p>
+                                                            <p className="text-xs text-gray-500">{app.ownerName || '-'}</p>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-3 px-4 text-gray-400 text-sm">
+                                                        {formatDate(app.updatedAt)}
+                                                    </td>
+                                                    <td className="py-3 px-4">
+                                                        <button
+                                                            onClick={() => handlePermanentDelete(app.appId, app.name)}
+                                                            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium transition-colors flex items-center gap-2"
+                                                        >
+                                                            <FiTrash2 size={14} />
+                                                            Xóa vĩnh viễn
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </Card>
                 </div>
             )}
 

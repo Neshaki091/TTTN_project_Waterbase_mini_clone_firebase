@@ -87,6 +87,16 @@ exports.createApp = async (req, res) => {
     }
 
     try {
+        // Check if user has reached the app limit (5 apps per user)
+        const userAppsCount = await appSchema.countDocuments({ ownerId, status: { $ne: 'deleted' } });
+        if (userAppsCount >= 5) {
+            return res.status(403).json({
+                message: 'App limit reached. You can only create a maximum of 5 apps.',
+                currentCount: userAppsCount,
+                maxLimit: 5
+            });
+        }
+
         // Check if app with same name exists for this owner
         const existingApp = await appSchema.findOne({ name, ownerId, status: { $ne: 'deleted' } });
         if (existingApp) {
@@ -258,6 +268,96 @@ exports.deleteApp = async (req, res) => {
         res.status(200).json({ message: 'App deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Error deleting app', error: error.message });
+    }
+};
+
+// Get all deleted apps (Admin only)
+exports.getDeletedApps = async (req, res) => {
+    try {
+        // Only admin can access deleted apps
+        if (req.user.role !== 'adminWaterbase') {
+            return res.status(403).json({ message: 'Access denied. Admin only.' });
+        }
+
+        // Get all soft-deleted apps
+        const deletedApps = await appSchema.find({ status: 'deleted' });
+
+        // Fetch owner information for each app
+        const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || 'http://auth-services:3000';
+        const ownerIds = [...new Set(deletedApps.map(app => app.ownerId))];
+
+        const ownerMap = {};
+        try {
+            const ownerPromises = ownerIds.map(async (ownerId) => {
+                try {
+                    const response = await fetch(`${AUTH_SERVICE_URL}/owners/${ownerId}`, {
+                        headers: {
+                            'Authorization': req.headers.authorization
+                        }
+                    });
+                    if (response.ok) {
+                        const owner = await response.json();
+                        ownerMap[ownerId] = {
+                            ownerEmail: owner.profile?.email || 'Unknown',
+                            ownerName: owner.profile?.name || owner.profile?.email || 'Unknown'
+                        };
+                    }
+                } catch (err) {
+                    console.error(`Failed to fetch owner ${ownerId}:`, err);
+                }
+            });
+            await Promise.all(ownerPromises);
+        } catch (error) {
+            console.error('Error fetching owner info:', error);
+        }
+
+        // Add owner info to apps
+        const appsWithOwner = deletedApps.map(app => ({
+            ...app.toObject(),
+            ownerEmail: ownerMap[app.ownerId]?.ownerEmail,
+            ownerName: ownerMap[app.ownerId]?.ownerName
+        }));
+
+        res.status(200).json(appsWithOwner);
+    } catch (error) {
+        res.status(500).json({ message: 'Error retrieving deleted apps', error: error.message });
+    }
+};
+
+// Permanently delete an app (Admin only)
+exports.permanentlyDeleteApp = async (req, res) => {
+    const appId = req.params.id;
+
+    try {
+        // Only admin can permanently delete apps
+        if (req.user.role !== 'adminWaterbase') {
+            return res.status(403).json({ message: 'Access denied. Admin only.' });
+        }
+
+        // Find the app (must be soft-deleted first)
+        const app = await appSchema.findOne({ appId });
+
+        if (!app) {
+            return res.status(404).json({ message: 'App not found' });
+        }
+
+        if (app.status !== 'deleted') {
+            return res.status(400).json({
+                message: 'App must be soft-deleted first before permanent deletion',
+                currentStatus: app.status
+            });
+        }
+
+        // Permanently delete from database
+        await appSchema.deleteOne({ appId });
+
+        res.status(200).json({
+            message: 'App permanently deleted from database',
+            appId: app.appId,
+            appName: app.name
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error permanently deleting app', error: error.message });
     }
 };
 
