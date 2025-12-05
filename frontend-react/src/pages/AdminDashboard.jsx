@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FiUsers, FiPackage, FiDatabase, FiHardDrive, FiTrendingUp, FiTrash2 } from 'react-icons/fi';
+import { FiUsers, FiPackage, FiDatabase, FiHardDrive, FiTrendingUp } from 'react-icons/fi';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import adminService from '../services/admin.service';
 import { useApp } from '../context/AppContext';
@@ -13,10 +13,8 @@ const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'
 const AdminDashboard = () => {
     const navigate = useNavigate();
     const { isAdmin } = useApp();
-    const [activeTab, setActiveTab] = useState('system'); // 'system', 'owners', or 'deleted'
+    const [activeTab, setActiveTab] = useState('system'); // 'system' or 'owners'
     const [loading, setLoading] = useState(true);
-    const [deletedApps, setDeletedApps] = useState([]);
-    const [deletedAppsLoading, setDeletedAppsLoading] = useState(false);
     const [stats, setStats] = useState({
         totalOwners: 0,
         newOwnersThisMonth: 0,
@@ -48,42 +46,12 @@ const AdminDashboard = () => {
         }
     };
 
-    const loadDeletedApps = async () => {
-        try {
-            setDeletedAppsLoading(true);
-            const data = await adminService.getDeletedApps();
-            setDeletedApps(data);
-        } catch (error) {
-            toast.error(error.response?.data?.message || 'Không thể tải danh sách app đã xóa');
-        } finally {
-            setDeletedAppsLoading(false);
-        }
-    };
-
-    const handlePermanentDelete = async (appId, appName) => {
-        if (!window.confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN app "${appName}"?\n\nHành động này KHÔNG THỂ HOÀN TÁC!`)) {
-            return;
-        }
-
-        try {
-            await adminService.permanentlyDeleteApp(appId);
-            toast.success('App đã được xóa vĩnh viễn khỏi database');
-            loadDeletedApps(); // Reload the list
-        } catch (error) {
-            toast.error(error.response?.data?.message || 'Không thể xóa vĩnh viễn app');
-        }
-    };
-
     const formatBytes = (bytes) => {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
         const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-    };
-
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleString('vi-VN');
     };
 
     if (loading) {
@@ -122,18 +90,6 @@ const AdminDashboard = () => {
                         }`}
                 >
                     Chi tiết theo Owner
-                </button>
-                <button
-                    onClick={() => {
-                        setActiveTab('deleted');
-                        loadDeletedApps();
-                    }}
-                    className={`px-4 py-2 font-medium transition-colors ${activeTab === 'deleted'
-                        ? 'text-blue-400 border-b-2 border-blue-400'
-                        : 'text-gray-400 hover:text-gray-300'
-                        }`}
-                >
-                    App đã xóa
                 </button>
             </div>
 
