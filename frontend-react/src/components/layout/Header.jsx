@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FiShield } from 'react-icons/fi';
 import { useApp } from '../../context/AppContext';
 import Button from '../common/Button';
+import WaterDropLogo from '../common/WaterDropLogo';
 
 const Header = () => {
   const { currentUser, logout, isAdmin } = useApp();
@@ -17,9 +18,12 @@ const Header = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-6">
-            <Link to={isAdmin ? '/admin' : '/'} className="flex items-center space-x-2">
-              <span className="text-xl font-bold text-blue-500">Waterbase</span>
-              <span className="text-sm text-gray-400">Console</span>
+            <Link to={isAdmin ? '/admin' : '/'} className="flex items-center space-x-3">
+              <WaterDropLogo size={28} className="flex-shrink-0" />
+              <div className="flex items-center space-x-2">
+                <span className="text-xl font-bold text-blue-500">Waterbase</span>
+                <span className="text-sm text-gray-400">Console</span>
+              </div>
             </Link>
 
             <nav className="flex items-center space-x-4 ml-6">

@@ -5,6 +5,7 @@ import authService from '../services/auth.service';
 import { useApp } from '../context/AppContext';
 import Input from '../components/common/Input';
 import Button from '../components/common/Button';
+import WaterDropLogo from '../components/common/WaterDropLogo';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -76,6 +77,9 @@ const Login = () => {
     <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
+          <div className="flex items-center justify-center mb-4">
+            <WaterDropLogo size={48} />
+          </div>
           <h1 className="text-3xl font-bold text-white mb-2">Waterbase Console</h1>
           <p className="text-gray-400">Quản lý ứng dụng của bạn</p>
         </div>

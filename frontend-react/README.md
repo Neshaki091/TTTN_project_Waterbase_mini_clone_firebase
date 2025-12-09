@@ -1,58 +1,233 @@
-# Waterbase Frontend - React
+<div align="center">
 
-Frontend console application cho Waterbase backend microservices.
+![Waterbase Logo](./public/favicon.svg)
 
-## Cấu trúc API
+# 💧 Waterbase Admin Console
 
-Frontend này kết nối với backend thông qua NGINX API Gateway tại `http://localhost` (port 80).
+**React Frontend cho Waterbase BaaS Platform**
 
-### API Endpoints
+[![React](https://img.shields.io/badge/React-18.x-blue.svg)](https://reactjs.org/)
+[![Vite](https://img.shields.io/badge/Vite-5.x-646CFF.svg)](https://vitejs.dev/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.x-38B2AC.svg)](https://tailwindcss.com/)
 
-Tất cả các requests đều đi qua NGINX gateway với cấu trúc:
+**Console quản lý cho Waterbase Backend-as-a-Service**
+
+[🌐 Live Demo](https://web.waterbase.click) | [🔗 API](https://api.waterbase.click)
+
+</div>
+
+---
+
+## 📋 Mục Lục
+
+- [Giới Thiệu](#-giới-thiệu)
+- [Tính Năng](#-tính-năng)
+- [Kiến Trúc](#-kiến-trúc)
+- [Công Nghệ](#-công-nghệ)
+- [Cài Đặt](#-cài-đặt)
+- [Sử Dụng](#-sử-dụng)
+- [API Integration](#-api-integration)
+- [Deployment](#-deployment)
+- [Troubleshooting](#-troubleshooting)
+
+---
+
+## 🌟 Giới Thiệu
+
+**Waterbase Admin Console** là giao diện quản lý web-based cho nền tảng Waterbase BaaS, được xây dựng bằng React và Vite. Console cung cấp đầy đủ công cụ để developers quản lý ứng dụng, dữ liệu, storage và security rules.
+
+### 🎯 Mục Đích
+
+- ✅ **Owner Dashboard**: Quản lý apps, xem analytics, cấu hình
+- ✅ **Data Playground**: CRUD dữ liệu trực quan như Firebase Console
+- ✅ **Realtime Playground**: Test realtime sync với WebSocket
+- ✅ **Rule Editor**: Soạn thảo JSON security rules
+- ✅ **Storage Manager**: Upload/download/delete files
+- ✅ **Admin Dashboard**: Quản trị hệ thống (Super Admin)
+
+---
+
+## 🚀 Tính Năng
+
+### 🔐 1. Authentication
+- ✅ Đăng ký/Đăng nhập Owner
+- ✅ JWT-based authentication
+- ✅ Auto-redirect based on role (Owner/Admin)
+- ✅ Persistent login với localStorage
+
+### 📱 2. App Management
+- ✅ Tạo ứng dụng mới
+- ✅ Xem danh sách apps
+- ✅ Xem chi tiết app (API Key, App ID)
+- ✅ Regenerate API Key
+- ✅ Download SDK configuration
+- ✅ Xóa ứng dụng
+
+### 📊 3. Overview Dashboard
+- ✅ Thống kê tổng quan (Database, Storage, Realtime)
+- ✅ Charts với Recharts
+- ✅ Real-time usage tracking
+- ✅ Quota monitoring
+
+### 🗄️ 4. Data Playground
+- ✅ **3-column layout:**
+  - Collections list
+  - Documents list
+  - Document editor
+- ✅ **CRUD Operations:**
+  - Create collection
+  - Create document
+  - Edit document (JSON editor)
+  - Delete document
+  - Delete collection
+- ✅ **Query & Filter:**
+  - Search documents
+  - Sort by fields
+  - Pagination
+
+### ⚡ 5. Realtime Playground
+- ✅ WebSocket connection status
+- ✅ Subscribe/Unsubscribe collections
+- ✅ Real-time event monitoring
+- ✅ Live data sync visualization
+- ✅ Connection management
+
+### 🔒 6. Rule Editor
+- ✅ JSON-based rule editor
+- ✅ Syntax highlighting
+- ✅ Validation
+- ✅ Save/Update rules
+- ✅ Rule templates
+
+### 📦 7. Storage Manager
+- ✅ Upload files (drag & drop)
+- ✅ File list với preview
+- ✅ Download files
+- ✅ Delete files
+- ✅ File metadata (size, type, date)
+- ✅ Storage quota tracking
+
+### ⚙️ 8. Settings
+- ✅ Update app info (name, description)
+- ✅ Download SDK config file
+- ✅ Regenerate API Key
+- ✅ Delete app (với confirmation)
+
+### 👨‍💼 9. Admin Dashboard (Super Admin)
+- ✅ Quản lý tất cả Owners
+- ✅ Quản lý tất cả Apps
+- ✅ System-wide analytics
+- ✅ Charts & visualizations
+- ✅ Owner/App statistics
+
+### 📖 10. Documentation
+- ✅ Hướng dẫn sử dụng SDK
+- ✅ Code examples
+- ✅ API documentation
+- ✅ SDK download
+
+---
+
+## 🏗️ Kiến Trúc
+
+### Component Structure
 
 ```
-Frontend → NGINX (localhost:80) → Backend Services
+src/
+├── components/
+│   ├── common/              # Shared components
+│   │   ├── Button.jsx
+│   │   ├── Input.jsx
+│   │   ├── Card.jsx
+│   │   └── WaterDropLogo.jsx  # Logo component
+│   ├── layout/              # Layout components
+│   │   └── Header.jsx
+│   └── app/                 # App-specific components
+│       ├── OverviewTab.jsx
+│       ├── DataPlaygroundTab.jsx
+│       ├── RealtimePlaygroundTab.jsx
+│       ├── RuleEditorTab.jsx
+│       ├── StorageTab.jsx
+│       └── AppSettings.jsx
+├── pages/                   # Page components
+│   ├── Login.jsx           # Login/Register page
+│   ├── Dashboard.jsx       # Owner dashboard
+│   ├── AppDetail.jsx       # App detail page
+│   ├── AdminDashboard.jsx  # Admin dashboard
+│   ├── AdminOwners.jsx     # Manage owners
+│   ├── AdminApps.jsx       # Manage all apps
+│   ├── Guide.jsx           # SDK guide
+│   └── SDKDownload.jsx     # SDK download
+├── services/                # API service layer
+│   ├── api.client.js       # Axios client
+│   ├── auth.service.js     # Auth APIs
+│   ├── app.service.js      # App APIs
+│   ├── database.service.js # Database APIs
+│   ├── storage.service.js  # Storage APIs
+│   ├── rule.service.js     # Rule APIs
+│   └── admin.service.js    # Admin APIs
+├── context/                 # React Context
+│   └── AppContext.jsx      # Global state
+├── config/                  # Configuration
+│   └── api.config.js       # API endpoints
+├── App.jsx                  # Main app
+└── main.jsx                 # Entry point
 ```
 
-#### Auth Service (port 3000)
-- `POST /auth/owners/login` - Đăng nhập owner
-- `POST /auth/owners/logout` - Đăng xuất owner
-- `POST /auth/owners` - Đăng ký owner mới
-- `GET /auth/owners/:id` - Lấy thông tin owner
+### Data Flow
 
-#### App Service (port 3001)
-- `GET /apps/` - Lấy danh sách apps
-- `GET /apps/:id` - Lấy thông tin app
-- `POST /apps/` - Tạo app mới
-- `PUT /apps/:id` - Cập nhật app
-- `DELETE /apps/:id` - Xóa app
-- `GET /apps/:id/api-key` - Lấy API key
-- `POST /apps/:id/regenerate-key` - Tạo lại API key
+```
+User Action → Component → Service Layer → API Client → Backend API
+                                                            ↓
+                                                       Response
+                                                            ↓
+Component ← Context (if needed) ← Service Layer ← API Client
+```
 
-#### Database Service (port 3002)
-- `GET /db/collections` - Lấy danh sách collections
-- `GET /db/:collectionName` - Lấy documents trong collection
-- `GET /db/:collectionName/:docId` - Lấy document cụ thể
-- `POST /db/:collectionName` - Tạo document mới
-- `PUT /db/:collectionName/:docId` - Cập nhật document
-- `DELETE /db/:collectionName/:docId` - Xóa document
+---
 
-#### Rule Service (port 3004)
-- `GET /rules/:appId/:role` - Lấy rule theo app và role
-- `POST /rules/` - Tạo rule mới
-- `PUT /rules/` - Cập nhật rule
-- `DELETE /rules/:appId/:role` - Xóa rule
-- `POST /rules/check-action` - Kiểm tra action
+## 🛠️ Công Nghệ
 
-## Cài đặt
+### Core
+- **React 18.x** - UI framework
+- **Vite 5.x** - Build tool & dev server
+- **React Router DOM** - Client-side routing
 
-### 1. Cài đặt dependencies
+### UI & Styling
+- **TailwindCSS** - Utility-first CSS (via CDN)
+- **React Icons** - Icon library
+- **Recharts** - Charts & visualizations
+
+### Data & State
+- **React Context** - Global state management
+- **Axios** - HTTP client
+- **Socket.io Client** - WebSocket for realtime
+
+### Utilities
+- **React Toastify** - Toast notifications
+- **date-fns** - Date formatting
+
+---
+
+## 📦 Cài Đặt
+
+### Yêu Cầu
+
+- **Node.js:** 18.x+
+- **npm:** 9.x+
+- **Backend:** Waterbase backend services đang chạy
+
+### Bước 1: Clone & Install
 
 ```bash
+# Navigate to frontend directory
+cd waterbase/frontend-react
+
+# Install dependencies
 npm install
 ```
 
-### 2. Cấu hình môi trường
+### Bước 2: Cấu Hình Environment
 
 Tạo file `.env` từ `.env.example`:
 
@@ -60,167 +235,347 @@ Tạo file `.env` từ `.env.example`:
 cp .env.example .env
 ```
 
-Nội dung file `.env`:
+**File `.env`:**
 
 ```env
+# Local Development
 VITE_API_BASE_URL=http://localhost
+
+# Production
+# VITE_API_BASE_URL=https://api.waterbase.click
 ```
 
-### 3. Chạy development server
+### Bước 3: Khởi Động Dev Server
 
 ```bash
 npm run dev
 ```
 
-Frontend sẽ chạy tại `http://localhost:5173` (hoặc port khác nếu 5173 đang được sử dụng).
+Frontend sẽ chạy tại: **http://localhost:5173**
 
-## Cấu trúc thư mục
+---
 
-```
-src/
-├── components/       # React components
-│   ├── common/      # Shared components (Button, Input, etc.)
-│   └── ...
-├── config/          # Configuration files
-│   └── api.config.js    # API endpoints configuration
-├── context/         # React Context
-│   └── AppContext.jsx   # Global app state
-├── pages/           # Page components
-│   ├── Login.jsx
-│   ├── Dashboard.jsx
-│   └── AppDetail.jsx
-├── services/        # API service layer
-│   ├── api.client.js    # Axios client setup
-│   ├── auth.service.js  # Auth API calls
-│   ├── app.service.js   # App API calls
-│   ├── database.service.js  # Database API calls
-│   └── rule.service.js  # Rule API calls
-├── App.jsx          # Main app component
-└── main.jsx         # Entry point
-```
+## 💻 Sử Dụng
 
-## Authentication Flow
+### 1️⃣ Đăng Nhập
 
-1. **Login**: User nhập email/password → POST `/auth/owners/login`
-2. **Token Storage**: JWT token được lưu trong `localStorage` với key `ownerToken`
-3. **Authenticated Requests**: Mọi request đến App/Database/Rule services đều gửi kèm header:
-   ```
-   Authorization: Bearer <ownerToken>
-   ```
-4. **Logout**: POST `/auth/owners/logout` → Xóa token khỏi localStorage
+**Local:**
+1. Truy cập http://localhost:5173
+2. Đăng nhập hoặc đăng ký tài khoản Owner
 
-## API Client Architecture
+**Production:**
+1. Truy cập https://web.waterbase.click
+2. Đăng nhập với tài khoản của bạn
 
-### Management API
-Dùng cho Owner operations (quản lý apps, rules):
-- Base URL: `/apps`, `/rules`
-- Authentication: `Authorization: Bearer <ownerToken>`
+### 2️⃣ Tạo App
 
-### Usage API
-Dùng cho End-User operations (CRUD database):
-- Base URL: `/db`
-- Headers:
-  - `x-app-id: <appId>` - ID của app đang sử dụng
-  - `Authorization: Bearer <userToken>` - Token của end-user (nếu có)
+1. Click "Tạo ứng dụng mới"
+2. Điền tên và mô tả
+3. Hệ thống tự động sinh App ID và API Key
 
-## Chạy cùng Backend
+### 3️⃣ Quản Lý Dữ Liệu
 
-### 1. Khởi động Backend Services
+**Data Playground:**
+- Click vào app → Tab "Data"
+- Tạo collection mới
+- Thêm documents
+- Edit/Delete documents
 
-Trong thư mục `waterbase-backend`:
+### 4️⃣ Test Realtime
 
-```bash
-docker-compose up -d
+**Realtime Playground:**
+- Tab "Realtime"
+- Click "Connect" để kết nối WebSocket
+- Subscribe collection để nhận events
+- Mở tab khác và thay đổi data để xem sync
+
+### 5️⃣ Cấu Hình Security
+
+**Rule Editor:**
+- Tab "Rules"
+- Chỉnh sửa JSON rules
+- Click "Save Rules"
+
+**Example:**
+```json
+{
+  "database": {
+    "users": {
+      "read": true,
+      "write": "auth.uid != null"
+    }
+  }
+}
 ```
 
-Kiểm tra services đang chạy:
+### 6️⃣ Quản Lý Files
 
-```bash
-docker-compose ps
+**Storage:**
+- Tab "Storage"
+- Drag & drop files để upload
+- Click file để download
+- Delete files không cần thiết
+
+---
+
+## 🔌 API Integration
+
+### Authentication Flow
+
+```javascript
+// 1. Login
+POST /api/v1/auth/owners/login
+Body: { email, password }
+Response: { token, owner }
+
+// 2. Store token
+localStorage.setItem('ownerToken', token);
+
+// 3. Authenticated requests
+Headers: {
+  'Authorization': 'Bearer <ownerToken>'
+}
 ```
 
-### 2. Khởi động Frontend
+### API Endpoints
 
-Trong thư mục `frontend-react`:
-
-```bash
-npm run dev
+**Auth Service:**
+```
+POST   /api/v1/auth/owners/register
+POST   /api/v1/auth/owners/login
+POST   /api/v1/auth/owners/logout
+GET    /api/v1/auth/owners/me
 ```
 
-### 3. Truy cập ứng dụng
+**App Service:**
+```
+GET    /api/v1/apps
+POST   /api/v1/apps
+GET    /api/v1/apps/:appId
+PUT    /api/v1/apps/:appId
+DELETE /api/v1/apps/:appId
+POST   /api/v1/apps/:appId/regenerate-key
+```
 
-Mở browser tại: `http://localhost:5173`
+**Database Service:**
+```
+GET    /api/v1/db/collections
+POST   /api/v1/db/:collection
+GET    /api/v1/db/:collection
+PUT    /api/v1/db/:collection/:id
+DELETE /api/v1/db/:collection/:id
+```
 
-## Build Production
+**Storage Service:**
+```
+POST   /api/v1/storage/upload
+GET    /api/v1/storage/files
+GET    /api/v1/storage/file/:fileId
+DELETE /api/v1/storage/file/:fileId
+```
+
+**Realtime (WebSocket):**
+```
+ws://localhost/api/v1/rtdb          (Local)
+wss://api.waterbase.click/api/v1/rtdb  (Production)
+```
+
+### Service Layer Example
+
+```javascript
+// services/app.service.js
+import apiClient from './api.client';
+
+export const appService = {
+  getApps: async () => {
+    const response = await apiClient.get('/apps');
+    return response.data;
+  },
+  
+  createApp: async (appData) => {
+    const response = await apiClient.post('/apps', appData);
+    return response.data;
+  }
+};
+```
+
+---
+
+## 🌐 Deployment
+
+### Build Production
 
 ```bash
 npm run build
 ```
 
-Output sẽ được tạo trong thư mục `dist/`.
+Output: `dist/` directory
 
-## Troubleshooting
+### Deploy to Server
+
+**Option 1: Static Hosting**
+```bash
+# Upload dist/ to static host (Netlify, Vercel, etc.)
+```
+
+**Option 2: Nginx**
+```nginx
+server {
+    listen 80;
+    server_name web.waterbase.click;
+    
+    root /var/www/waterbase-frontend/dist;
+    index index.html;
+    
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+**Option 3: Docker**
+```dockerfile
+FROM nginx:alpine
+COPY dist/ /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+### Environment Variables
+
+**Production `.env`:**
+```env
+VITE_API_BASE_URL=https://api.waterbase.click
+```
+
+---
+
+## 🔧 Troubleshooting
 
 ### CORS Errors
 
-Nếu gặp lỗi CORS, kiểm tra:
-1. NGINX có đang chạy không: `docker ps | grep nginx`
-2. NGINX config có đúng không: `waterbase-backend/nginx/nginx.conf`
+**Nguyên nhân:** Backend không cho phép origin của frontend
+
+**Giải pháp:**
+1. Kiểm tra NGINX config
+2. Đảm bảo CORS headers được set đúng
+3. Restart NGINX: `docker-compose restart nginx`
 
 ### 401 Unauthorized
 
-- Kiểm tra token trong localStorage: `localStorage.getItem('ownerToken')`
-- Thử đăng nhập lại
-- Kiểm tra Auth Service có đang chạy không
+**Nguyên nhân:** Token không hợp lệ hoặc hết hạn
+
+**Giải pháp:**
+```javascript
+// Check token
+console.log(localStorage.getItem('ownerToken'));
+
+// Clear and re-login
+localStorage.removeItem('ownerToken');
+// Login again
+```
 
 ### 502 Bad Gateway
 
-Nếu gặp lỗi 502 Bad Gateway khi gọi API:
+**Nguyên nhân:** NGINX không kết nối được backend services
 
-**Nguyên nhân**: NGINX không thể kết nối đến backend services. Thường xảy ra khi:
-1. Backend services chưa khởi động xong khi NGINX start
-2. NGINX cache DNS của container names
-
-**Giải pháp**:
-
+**Giải pháp:**
 ```bash
-# Restart NGINX container
+# Restart NGINX
 cd waterbase-backend
 docker-compose restart nginx
+
+# Or restart all
+docker-compose down && docker-compose up -d
 ```
 
-Hoặc restart toàn bộ stack:
+### WebSocket Connection Failed
+
+**Nguyên nhân:** Realtime service không chạy hoặc NGINX config sai
+
+**Giải pháp:**
+```bash
+# Check realtime service
+docker-compose ps rtwaterdb-service
+
+# Check logs
+docker-compose logs rtwaterdb-service
+
+# Restart
+docker-compose restart rtwaterdb-service
+```
+
+### Build Errors
 
 ```bash
-docker-compose down
-docker-compose up -d
+# Clear cache
+rm -rf node_modules package-lock.json
+npm install
+
+# Clear Vite cache
+rm -rf .vite
+npm run dev
 ```
 
-**Kiểm tra**:
+---
+
+## 📜 Scripts
+
 ```bash
-# Test API endpoint
-Invoke-WebRequest -Uri "http://localhost/auth/owners/login" -Method POST -ContentType "application/json" -Body '{"email":"test@test.com","password":"test"}' -UseBasicParsing
-
-# Nếu thành công, sẽ thấy response (có thể là error "Owner not found" nhưng không phải 502)
+npm run dev      # Start dev server (port 5173)
+npm run build    # Build for production
+npm run preview  # Preview production build
+npm run lint     # Run ESLint
 ```
 
-### Connection Refused
+---
 
-- Đảm bảo backend services đã khởi động: `docker-compose ps`
-- Kiểm tra NGINX đang listen port 80: `netstat -an | grep :80`
+## 🎨 Customization
 
-## Scripts
+### Logo
 
-- `npm run dev` - Chạy development server
-- `npm run build` - Build production
-- `npm run preview` - Preview production build
-- `npm run lint` - Chạy ESLint
+Logo được định nghĩa trong `src/components/common/WaterDropLogo.jsx`
 
-## Technologies
+Xem [LOGO_GUIDE.md](./LOGO_GUIDE.md) để biết cách tùy chỉnh.
 
-- **React 19** - UI framework
-- **Vite** - Build tool
-- **React Router** - Routing
-- **Axios** - HTTP client
-- **React Toastify** - Toast notifications
-- **Tailwind CSS** - Styling (via CDN in index.html)
+### Theme Colors
+
+Chỉnh sửa trong các component hoặc thêm vào Tailwind config:
+
+```javascript
+// tailwind.config.js
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        primary: '#3B82F6',
+        // ...
+      }
+    }
+  }
+}
+```
+
+---
+
+## 📞 Support
+
+- **Issues:** [GitHub Issues](https://github.com/your-repo/issues)
+- **Documentation:** [Main README](../../README.md)
+- **API Docs:** [API Documentation](../../docs/API.md)
+
+---
+
+## 📄 License
+
+MIT License - See [LICENSE](../../LICENSE)
+
+---
+
+<div align="center">
+
+**Made with ❤️ for Waterbase BaaS Platform**
+
+[🌐 Live Demo](https://web.waterbase.click) | [🔗 API](https://api.waterbase.click) | [📖 Docs](../../README.md)
+
+</div>
