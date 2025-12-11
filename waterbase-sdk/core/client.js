@@ -1,8 +1,10 @@
 /**
  * Waterbase SDK v3.0 - HTTP Client
+ * Compatible with Web and React Native
  */
 
 import { NetworkError, AuthError } from './errors.js';
+import storage from './storage.js';
 
 class HttpClient {
     constructor(config) {
@@ -24,38 +26,38 @@ class HttpClient {
         this.refreshPromise = null;
     }
 
-    setToken(token, refreshToken = null) {
+    async setToken(token, refreshToken = null) {
         this.token = token;
         if (token) {
-            localStorage.setItem('waterbase_token', token);
+            await storage.setItem('waterbase_token', token);
         } else {
-            localStorage.removeItem('waterbase_token');
+            await storage.removeItem('waterbase_token');
         }
 
         if (refreshToken !== null) {
             this.refreshToken = refreshToken;
             if (refreshToken) {
-                localStorage.setItem('waterbase_refresh_token', refreshToken);
+                await storage.setItem('waterbase_refresh_token', refreshToken);
             } else {
-                localStorage.removeItem('waterbase_refresh_token');
+                await storage.removeItem('waterbase_refresh_token');
             }
         }
     }
 
-    setOwnerToken(token, refreshToken = null) {
+    async setOwnerToken(token, refreshToken = null) {
         this.ownerToken = token;
         if (token) {
-            localStorage.setItem('waterbase_owner_token', token);
+            await storage.setItem('waterbase_owner_token', token);
         } else {
-            localStorage.removeItem('waterbase_owner_token');
+            await storage.removeItem('waterbase_owner_token');
         }
 
         if (refreshToken !== null) {
             this.ownerRefreshToken = refreshToken;
             if (refreshToken) {
-                localStorage.setItem('waterbase_owner_refresh_token', refreshToken);
+                await storage.setItem('waterbase_owner_refresh_token', refreshToken);
             } else {
-                localStorage.removeItem('waterbase_owner_refresh_token');
+                await storage.removeItem('waterbase_owner_refresh_token');
             }
         }
     }
@@ -230,13 +232,13 @@ class HttpClient {
                 if (useOwnerToken) {
                     this.ownerToken = data.accessToken;
                     this.ownerRefreshToken = data.refreshToken;  // ← NEW refresh token!
-                    localStorage.setItem('waterbase_owner_token', data.accessToken);
-                    localStorage.setItem('waterbase_owner_refresh_token', data.refreshToken);
+                    await storage.setItem('waterbase_owner_token', data.accessToken);
+                    await storage.setItem('waterbase_owner_refresh_token', data.refreshToken);
                 } else {
                     this.token = data.accessToken;
                     this.refreshToken = data.refreshToken;  // ← NEW refresh token!
-                    localStorage.setItem('waterbase_token', data.accessToken);
-                    localStorage.setItem('waterbase_refresh_token', data.refreshToken);
+                    await storage.setItem('waterbase_token', data.accessToken);
+                    await storage.setItem('waterbase_refresh_token', data.refreshToken);
                 }
 
                 if (this.config.debug) {
@@ -251,11 +253,11 @@ class HttpClient {
 
                 // Clear tokens on refresh failure
                 if (useOwnerToken) {
-                    this.setOwnerToken(null, null);
-                    localStorage.removeItem('waterbase_owner');
+                    await this.setOwnerToken(null, null);
+                    await storage.removeItem('waterbase_owner');
                 } else {
-                    this.setToken(null, null);
-                    localStorage.removeItem('waterbase_user');
+                    await this.setToken(null, null);
+                    await storage.removeItem('waterbase_user');
                 }
 
                 return false;

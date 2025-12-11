@@ -49,7 +49,7 @@ export const appService = {
     const response = await apiClient.usage.get('/stats', {
       headers: { 'x-app-id': appId }
     });
-    return response.data;
+    return response;
   },
 
   // Get RTWaterDB usage stats
@@ -57,7 +57,7 @@ export const appService = {
     const response = await apiClient.rtUsage.get('/stats', {
       headers: { 'x-app-id': appId }
     });
-    return response.data;
+    return response;
   },
 };
 

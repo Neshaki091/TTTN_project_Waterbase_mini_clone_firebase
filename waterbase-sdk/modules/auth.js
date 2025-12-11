@@ -109,7 +109,7 @@ class AuthModule {
         if (response.accessToken) {
             this.client.setOwnerToken(response.accessToken, response.refreshToken);
             this.currentOwner = response.owner || response;
-            localStorage.setItem('waterbase_owner', JSON.stringify(this.currentOwner));
+            await storage.setItem('waterbase_owner', JSON.stringify(this.currentOwner));
         }
 
         return response;
@@ -128,7 +128,7 @@ class AuthModule {
         if (response.accessToken) {
             this.client.setOwnerToken(response.accessToken, response.refreshToken);
             this.currentOwner = response.owner || response;
-            localStorage.setItem('waterbase_owner', JSON.stringify(this.currentOwner));
+            await storage.setItem('waterbase_owner', JSON.stringify(this.currentOwner));
         }
 
         return response;

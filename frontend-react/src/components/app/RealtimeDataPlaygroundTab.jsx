@@ -194,11 +194,12 @@ const RealtimeDataPlaygroundTab = ({ appId }) => {
             setSaving(true);
 
             if (isCreatingDoc) {
-                if (newDocId.trim()) {
-                    await rtwaterdbService.updateDocument(selectedCollection, newDocId.trim(), parsedData);
-                } else {
-                    await rtwaterdbService.createDocument(selectedCollection, parsedData);
-                }
+                // Create new document (always use POST)
+                const payload = newDocId.trim()
+                    ? { documentId: newDocId.trim(), ...parsedData }
+                    : parsedData;
+
+                await rtwaterdbService.createDocument(selectedCollection, payload);
                 toast.success('Đã tạo tài liệu');
 
                 if (!collections.includes(selectedCollection)) {
@@ -208,6 +209,7 @@ const RealtimeDataPlaygroundTab = ({ appId }) => {
                 setIsCreatingDoc(false);
                 setNewDocId('');
             } else {
+                // Update existing document (use PUT)
                 if (!selectedDocumentId) return;
                 await rtwaterdbService.updateDocument(selectedCollection, selectedDocumentId, parsedData);
                 toast.success('Đã cập nhật tài liệu');

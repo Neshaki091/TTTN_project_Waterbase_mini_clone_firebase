@@ -1,7 +1,7 @@
 {
     "name": "waterbase-sdk",
     "version": "3.0.0",
-    "description": "Waterbase SDK - Firebase-like backend SDK for JavaScript",
+    "description": "Waterbase SDK - Firebase-like backend SDK for JavaScript (Web & React Native)",
     "main": "index.js",
     "type": "module",
     "keywords": [
@@ -10,11 +10,22 @@
         "firebase",
         "database",
         "realtime",
-        "storage"
+        "storage",
+        "react-native",
+        "web",
+        "cross-platform"
     ],
     "author": "Waterbase Team",
     "license": "MIT",
     "dependencies": {
         "socket.io-client": "^4.7.2"
+    },
+    "peerDependencies": {
+        "@react-native-async-storage/async-storage": "^1.0.0 || ^2.0.0"
+    },
+    "peerDependenciesMeta": {
+        "@react-native-async-storage/async-storage": {
+            "optional": true
+        }
     }
 }
