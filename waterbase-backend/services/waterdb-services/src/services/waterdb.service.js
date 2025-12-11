@@ -111,11 +111,11 @@ exports.getStorageUsage = async (appId) => {
     { $match: { appId } },
     {
       $project: {
-        // Estimate size: JSON.stringify length is a good approximation
-        // MongoDB stores BSON which is slightly larger, so we add 20% overhead
+        // Use $bsonSize to get accurate BSON size of the data object
+        // Handle null/undefined data with $ifNull
         size: {
           $add: [
-            { $strLenBytes: { $toString: '$data' } },
+            { $bsonSize: { $ifNull: ['$data', {}] } },
             { $strLenBytes: '$documentId' },
             { $strLenBytes: '$collection' },
             { $strLenBytes: '$appId' },

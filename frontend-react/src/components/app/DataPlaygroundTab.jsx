@@ -219,12 +219,12 @@ const DataPlaygroundTab = ({ appId }) => {
       setSaving(true);
 
       if (isCreatingDoc) {
-        // Create
-        if (newDocId.trim()) {
-          await databaseService.updateDocument(selectedCollection, newDocId.trim(), parsedData);
-        } else {
-          await databaseService.createDocument(selectedCollection, parsedData);
-        }
+        // Create new document (always use POST)
+        const payload = newDocId.trim()
+          ? { documentId: newDocId.trim(), ...parsedData }
+          : parsedData;
+
+        await databaseService.createDocument(selectedCollection, payload);
         toast.success('Đã tạo tài liệu');
 
         // If this was a new collection, add it to the list if not present
@@ -235,7 +235,7 @@ const DataPlaygroundTab = ({ appId }) => {
         setIsCreatingDoc(false);
         setNewDocId('');
       } else {
-        // Update
+        // Update existing document (use PUT)
         if (!selectedDocumentId) return;
         await databaseService.updateDocument(selectedCollection, selectedDocumentId, parsedData);
         toast.success('Đã cập nhật tài liệu');

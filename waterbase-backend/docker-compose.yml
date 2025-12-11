@@ -109,7 +109,7 @@ services:
           memory: 160m
         reservations:
           memory: 128m
-    restart: always
+    restart: no
     healthcheck:
       test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
       interval: 10s
@@ -146,7 +146,7 @@ services:
           memory: 160m
         reservations:
           memory: 128m
-    restart: always
+    restart: no
     healthcheck:
       test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
       interval: 10s
@@ -187,7 +187,7 @@ services:
           memory: 180m
         reservations:
           memory: 128m
-    restart: always
+    restart: no
     healthcheck:
       test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
       interval: 10s
@@ -236,7 +236,7 @@ services:
           memory: 180m
         reservations:
           memory: 140m
-    restart: always
+    restart: no
     healthcheck:
       test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
       interval: 10s
@@ -281,7 +281,7 @@ services:
           memory: 180m
         reservations:
           memory: 128m
-    restart: always
+    restart: no
     healthcheck:
       test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
       interval: 10s
@@ -325,7 +325,7 @@ services:
           memory: 130m
         reservations:
           memory: 90m
-    restart: always
+    restart: no
     healthcheck:
       test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
       interval: 10s
@@ -360,7 +360,7 @@ services:
           memory: 250m
         reservations:
           memory: 200m
-    restart: always
+    restart: no
     healthcheck:
       test: ["CMD", "sh", "-c", "ps aux | grep 'node.*server.js' | grep -v grep || exit 1"]
       interval: 10s
@@ -379,7 +379,7 @@ services:
       - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    restart: always
+    restart: no
     depends_on:
       auth-service:
         condition: service_healthy
@@ -411,7 +411,7 @@ services:
 
   cloudflare:
     image: cloudflare/cloudflared:latest
-    restart: unless-stopped
+    restart: no
     command: tunnel --config /etc/cloudflared/config.yml run
     volumes:
       - ./config.yml:/etc/cloudflared/config.yml:ro

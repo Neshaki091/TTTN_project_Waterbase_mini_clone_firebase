@@ -1,9 +1,11 @@
 /**
  * Waterbase SDK v3.0 - Authentication Module
  * Handles user and owner authentication
+ * Compatible with Web and React Native
  */
 
 import { AuthError, ValidationError } from '../core/errors.js';
+import storage from '../core/storage.js';
 
 class AuthModule {
     constructor(client) {
@@ -11,19 +13,24 @@ class AuthModule {
         this.currentUser = null;
         this.currentOwner = null;
 
-        // Load tokens from localStorage
-        this.client.token = localStorage.getItem('waterbase_token');
-        this.client.ownerToken = localStorage.getItem('waterbase_owner_token');
-        this.client.refreshToken = localStorage.getItem('waterbase_refresh_token');
-        this.client.ownerRefreshToken = localStorage.getItem('waterbase_owner_refresh_token');
+        // Load tokens and user data asynchronously
+        this._initializeAuth();
+    }
+
+    async _initializeAuth() {
+        // Load tokens from storage
+        this.client.token = await storage.getItem('waterbase_token');
+        this.client.ownerToken = await storage.getItem('waterbase_owner_token');
+        this.client.refreshToken = await storage.getItem('waterbase_refresh_token');
+        this.client.ownerRefreshToken = await storage.getItem('waterbase_owner_refresh_token');
 
         // Load user data
-        const userData = localStorage.getItem('waterbase_user');
+        const userData = await storage.getItem('waterbase_user');
         if (userData) {
             this.currentUser = JSON.parse(userData);
         }
 
-        const ownerData = localStorage.getItem('waterbase_owner');
+        const ownerData = await storage.getItem('waterbase_owner');
         if (ownerData) {
             this.currentOwner = JSON.parse(ownerData);
         }
@@ -43,7 +50,7 @@ class AuthModule {
         if (response.accessToken) {
             this.client.setToken(response.accessToken, response.refreshToken);
             this.currentUser = response.user || response;
-            localStorage.setItem('waterbase_user', JSON.stringify(this.currentUser));
+            await storage.setItem('waterbase_user', JSON.stringify(this.currentUser));
         }
 
         return response;
@@ -62,7 +69,7 @@ class AuthModule {
         if (response.accessToken) {
             this.client.setToken(response.accessToken, response.refreshToken);
             this.currentUser = response.user || response;
-            localStorage.setItem('waterbase_user', JSON.stringify(this.currentUser));
+            await storage.setItem('waterbase_user', JSON.stringify(this.currentUser));
         }
 
         return response;
@@ -77,7 +84,7 @@ class AuthModule {
 
         this.client.setToken(null, null);
         this.currentUser = null;
-        localStorage.removeItem('waterbase_user');
+        await storage.removeItem('waterbase_user');
     }
 
     getCurrentUser() {
@@ -136,7 +143,7 @@ class AuthModule {
 
         this.client.setOwnerToken(null, null);
         this.currentOwner = null;
-        localStorage.removeItem('waterbase_owner');
+        await storage.removeItem('waterbase_owner');
     }
 
     getCurrentOwner() {
