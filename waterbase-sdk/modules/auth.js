@@ -14,6 +14,8 @@ class AuthModule {
         // Load tokens from localStorage
         this.client.token = localStorage.getItem('waterbase_token');
         this.client.ownerToken = localStorage.getItem('waterbase_owner_token');
+        this.client.refreshToken = localStorage.getItem('waterbase_refresh_token');
+        this.client.ownerRefreshToken = localStorage.getItem('waterbase_owner_refresh_token');
 
         // Load user data
         const userData = localStorage.getItem('waterbase_user');
@@ -39,7 +41,7 @@ class AuthModule {
         const response = await this.client.post('/api/v1/auth/users', userData);
 
         if (response.accessToken) {
-            this.client.setToken(response.accessToken);
+            this.client.setToken(response.accessToken, response.refreshToken);
             this.currentUser = response.user || response;
             localStorage.setItem('waterbase_user', JSON.stringify(this.currentUser));
         }
@@ -58,7 +60,7 @@ class AuthModule {
         });
 
         if (response.accessToken) {
-            this.client.setToken(response.accessToken);
+            this.client.setToken(response.accessToken, response.refreshToken);
             this.currentUser = response.user || response;
             localStorage.setItem('waterbase_user', JSON.stringify(this.currentUser));
         }
@@ -73,7 +75,7 @@ class AuthModule {
             console.error('Logout error:', error);
         }
 
-        this.client.setToken(null);
+        this.client.setToken(null, null);
         this.currentUser = null;
         localStorage.removeItem('waterbase_user');
     }
@@ -98,7 +100,7 @@ class AuthModule {
         const response = await this.client.post('/api/v1/auth/owners', ownerData);
 
         if (response.accessToken) {
-            this.client.setOwnerToken(response.accessToken);
+            this.client.setOwnerToken(response.accessToken, response.refreshToken);
             this.currentOwner = response.owner || response;
             localStorage.setItem('waterbase_owner', JSON.stringify(this.currentOwner));
         }
@@ -117,7 +119,7 @@ class AuthModule {
         });
 
         if (response.accessToken) {
-            this.client.setOwnerToken(response.accessToken);
+            this.client.setOwnerToken(response.accessToken, response.refreshToken);
             this.currentOwner = response.owner || response;
             localStorage.setItem('waterbase_owner', JSON.stringify(this.currentOwner));
         }
@@ -132,7 +134,7 @@ class AuthModule {
             console.error('Owner logout error:', error);
         }
 
-        this.client.setOwnerToken(null);
+        this.client.setOwnerToken(null, null);
         this.currentOwner = null;
         localStorage.removeItem('waterbase_owner');
     }

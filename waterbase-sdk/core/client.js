@@ -18,23 +18,45 @@ class HttpClient {
 
         this.token = null;
         this.ownerToken = null;
+        this.refreshToken = null;
+        this.ownerRefreshToken = null;
+        this.isRefreshing = false;
+        this.refreshPromise = null;
     }
 
-    setToken(token) {
+    setToken(token, refreshToken = null) {
         this.token = token;
         if (token) {
             localStorage.setItem('waterbase_token', token);
         } else {
             localStorage.removeItem('waterbase_token');
         }
+
+        if (refreshToken !== null) {
+            this.refreshToken = refreshToken;
+            if (refreshToken) {
+                localStorage.setItem('waterbase_refresh_token', refreshToken);
+            } else {
+                localStorage.removeItem('waterbase_refresh_token');
+            }
+        }
     }
 
-    setOwnerToken(token) {
+    setOwnerToken(token, refreshToken = null) {
         this.ownerToken = token;
         if (token) {
             localStorage.setItem('waterbase_owner_token', token);
         } else {
             localStorage.removeItem('waterbase_owner_token');
+        }
+
+        if (refreshToken !== null) {
+            this.ownerRefreshToken = refreshToken;
+            if (refreshToken) {
+                localStorage.setItem('waterbase_owner_refresh_token', refreshToken);
+            } else {
+                localStorage.removeItem('waterbase_owner_refresh_token');
+            }
         }
     }
 
@@ -103,8 +125,23 @@ class HttpClient {
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
 
-                if (response.status === 401 || response.status === 403) {
+                // Auto-refresh token on 401 Unauthorized
+                if (response.status === 401) {
+                    const refreshResult = await this._handleTokenRefresh(useOwnerToken);
+
+                    if (refreshResult) {
+                        // Retry request with new token
+                        if (this.config.debug) {
+                            console.log('[Waterbase] Token refreshed, retrying request...');
+                        }
+                        return this.request(url, options, retryCount);
+                    }
+
                     throw new AuthError(errorData.message || 'Authentication failed', response.status);
+                }
+
+                if (response.status === 403) {
+                    throw new AuthError(errorData.message || 'Forbidden', response.status);
                 }
 
                 throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
@@ -137,6 +174,98 @@ class HttpClient {
 
             throw error;
         }
+    }
+
+    /**
+     * Handle automatic token refresh with Token Rotation (Firebase-style)
+     * @private
+     */
+    async _handleTokenRefresh(useOwnerToken = false) {
+        const refreshToken = useOwnerToken ? this.ownerRefreshToken : this.refreshToken;
+
+        if (!refreshToken) {
+            if (this.config.debug) {
+                console.log('[Waterbase] No refresh token available');
+            }
+            return false;
+        }
+
+        // Prevent multiple simultaneous refresh requests
+        if (this.isRefreshing) {
+            if (this.config.debug) {
+                console.log('[Waterbase] Waiting for ongoing token refresh...');
+            }
+            return this.refreshPromise;
+        }
+
+        this.isRefreshing = true;
+
+        const endpoint = useOwnerToken
+            ? '/api/v1/auth/owners/refresh-token'
+            : '/api/v1/auth/users/refresh-token';
+
+        this.refreshPromise = (async () => {
+            try {
+                if (this.config.debug) {
+                    console.log('[Waterbase] Refreshing token automatically...');
+                }
+
+                // 🔥 Send OLD refresh token in body
+                const response = await fetch(`${this.config.apiUrl}${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-app-id': this.config.appId
+                    },
+                    body: JSON.stringify({ refreshToken })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Token refresh failed');
+                }
+
+                const data = await response.json();
+
+                // 🔥 Update BOTH tokens (Token Rotation)
+                if (useOwnerToken) {
+                    this.ownerToken = data.accessToken;
+                    this.ownerRefreshToken = data.refreshToken;  // ← NEW refresh token!
+                    localStorage.setItem('waterbase_owner_token', data.accessToken);
+                    localStorage.setItem('waterbase_owner_refresh_token', data.refreshToken);
+                } else {
+                    this.token = data.accessToken;
+                    this.refreshToken = data.refreshToken;  // ← NEW refresh token!
+                    localStorage.setItem('waterbase_token', data.accessToken);
+                    localStorage.setItem('waterbase_refresh_token', data.refreshToken);
+                }
+
+                if (this.config.debug) {
+                    console.log('[Waterbase] Tokens refreshed successfully (with rotation)');
+                }
+
+                return true;
+            } catch (error) {
+                if (this.config.debug) {
+                    console.error('[Waterbase] Token refresh failed:', error.message);
+                }
+
+                // Clear tokens on refresh failure
+                if (useOwnerToken) {
+                    this.setOwnerToken(null, null);
+                    localStorage.removeItem('waterbase_owner');
+                } else {
+                    this.setToken(null, null);
+                    localStorage.removeItem('waterbase_user');
+                }
+
+                return false;
+            } finally {
+                this.isRefreshing = false;
+                this.refreshPromise = null;
+            }
+        })();
+
+        return this.refreshPromise;
     }
 
     async get(url, options = {}) {

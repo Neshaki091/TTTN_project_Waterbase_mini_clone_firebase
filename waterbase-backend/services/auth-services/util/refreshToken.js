@@ -4,10 +4,10 @@ const OwnerSchema = require('../models/owner.model');
 const UserSchema = require('../models/user.model'); // Đổi tên biến để nhất quán
 
 // Hàm tạo Access Token nhận payload đầy đủ
-// Dùng expiresIn ngắn hơn (vd: 15p - 30p) để an toàn hơn
+// Dùng expiresIn ngắn hơn (15 phút) để an toàn hơn
 const generateAccessToken = (payload) => {
     // Payload có thể là { id: userId, role: 'owner', apps: [...] }
-    return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' }); 
+    return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '15m' });
 }
 
 const generateRefreshToken = (userId) => {
@@ -63,13 +63,13 @@ const deleteUserRefreshToken = async (userId, accessToken) => {
     );
 }
 
-module.exports = { 
-    generateRefreshToken, 
-    generateAccessToken, 
-    addOwnerRefreshToken, 
-    deleteOwnerRefreshToken, 
-    addUserRefreshToken, 
-    deleteUserRefreshToken, 
-    getOwnerRefreshToken, 
-    getUserRefreshToken 
+module.exports = {
+    generateRefreshToken,
+    generateAccessToken,
+    addOwnerRefreshToken,
+    deleteOwnerRefreshToken,
+    addUserRefreshToken,
+    deleteUserRefreshToken,
+    getOwnerRefreshToken,
+    getUserRefreshToken
 };

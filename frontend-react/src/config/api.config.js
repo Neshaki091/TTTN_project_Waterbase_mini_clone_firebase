@@ -9,6 +9,7 @@ export const API_ENDPOINTS = {
       LOGIN: '/owners/login',
       LOGOUT: '/owners/logout',
       REGISTER: '/owners',
+      REFRESH_TOKEN: '/owners/refresh-token',
       BY_ID: (id) => `/owners/${id}`,
     },
   },

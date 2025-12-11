@@ -225,20 +225,22 @@ exports.loginOwner = async (req, res) => {
         const isMatch = await bcrypt.compare(password, owner.password);
         if (!isMatch) return res.status(401).json({ message: 'Invalid password' });
 
-        // Sửa: Tạo Access Token với payload chi tiết
+        // Tạo Access Token với payload chi tiết
         const accessTokenPayload = {
             id: owner._id,
             role: owner.role,
-            apps: owner.apps // Thêm apps để giảm DB lookup trong checkAppAccess
+            apps: owner.apps
         };
         const accessToken = generateAccessToken(accessTokenPayload);
-
         const refreshToken = generateRefreshToken(owner._id);
+
         await addOwnerRefreshToken(owner._id, refreshToken, accessToken);
 
+        // ✅ Firebase-style: Trả refresh token trong response body
         res.status(200).json({
             owner: sanitizeOwner(owner),
             accessToken,
+            refreshToken  // ← Trả về cho mọi platform
         });
     } catch (err) {
         res.status(500).json({ message: 'Error during login', error: err });
@@ -255,7 +257,8 @@ exports.logoutOwner = async (req, res) => {
 
     try {
         // req.user._id đã có nhờ ownermiddleware
-        await deleteOwnerRefreshToken(req.user.id, accessToken); // Dùng req.user.id (từ decoded token)
+        await deleteOwnerRefreshToken(req.user.id, accessToken);
+
         res.status(200).json({ message: 'Logout successful' });
     } catch (err) {
         res.status(500).json({ message: 'Error during logout', error: err });

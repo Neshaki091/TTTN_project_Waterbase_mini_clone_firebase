@@ -1,5 +1,6 @@
 import axios from 'axios';
 import API_ENDPOINTS from '../config/api.config';
+import authService from './auth.service';
 
 class APIClient {
   constructor() {
@@ -27,51 +28,104 @@ class APIClient {
       headers: { 'Content-Type': 'application/json' },
     });
 
+    // 🔥 Setup auto-refresh interceptors
     this._setupManagementInterceptors();
     this._setupAdminInterceptors();
     this._setupUsageInterceptors();
     this._setupRtUsageInterceptors();
+
+    // Track if refresh is in progress
+    this.isRefreshing = false;
+    this.refreshPromise = null;
+  }
+
+  // 🔥 Auto-refresh helper (Firebase-style)
+  async _refreshToken() {
+    // Prevent multiple simultaneous refresh requests
+    if (this.isRefreshing) {
+      return this.refreshPromise;
+    }
+
+    this.isRefreshing = true;
+    this.refreshPromise = authService.refreshOwnerToken()
+      .then((newToken) => {
+        this.isRefreshing = false;
+        this.refreshPromise = null;
+        return newToken;
+      })
+      .catch((error) => {
+        this.isRefreshing = false;
+        this.refreshPromise = null;
+        // Redirect to login on refresh failure
+        window.location.href = '/login';
+        throw error;
+      });
+
+    return this.refreshPromise;
   }
 
   _setupManagementInterceptors() {
-    // Thêm token cho request
+    // Request interceptor: Thêm token
     this.managementApi.interceptors.request.use((config) => {
       const token = localStorage.getItem('ownerToken');
       if (token) config.headers.Authorization = `Bearer ${token}`;
       return config;
     });
 
-    // Response interceptor xử lý lỗi 401
+    // 🔥 Response interceptor: Auto-refresh on 401
     this.managementApi.interceptors.response.use(
       (res) => res,
-      (error) => {
-        if (error.response?.status === 401) {
-          localStorage.removeItem('ownerToken');
-          localStorage.removeItem('ownerData');
-          window.location.href = '/login';
+      async (error) => {
+        const originalRequest = error.config;
+
+        // If 401 and not already retried
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+
+          try {
+            // Auto-refresh token
+            const newToken = await this._refreshToken();
+
+            // Retry original request with new token
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            return this.managementApi(originalRequest);
+          } catch (refreshError) {
+            // Refresh failed - already redirected to login
+            return Promise.reject(refreshError);
+          }
         }
+
         return Promise.reject(error);
       }
     );
   }
 
   _setupAdminInterceptors() {
-    // Thêm token cho request
+    // Request interceptor: Thêm token
     this.adminApi.interceptors.request.use((config) => {
       const token = localStorage.getItem('ownerToken');
       if (token) config.headers.Authorization = `Bearer ${token}`;
       return config;
     });
 
-    // Response interceptor xử lý lỗi 401
+    // 🔥 Response interceptor: Auto-refresh on 401
     this.adminApi.interceptors.response.use(
       (res) => res,
-      (error) => {
-        if (error.response?.status === 401) {
-          localStorage.removeItem('ownerToken');
-          localStorage.removeItem('ownerData');
-          window.location.href = '/login';
+      async (error) => {
+        const originalRequest = error.config;
+
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+
+          try {
+            const newToken = await this._refreshToken();
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            return this.adminApi(originalRequest);
+          } catch (refreshError) {
+            return Promise.reject(refreshError);
+          }
         }
+
         return Promise.reject(error);
       }
     );
@@ -82,27 +136,43 @@ class APIClient {
       const appId = localStorage.getItem('currentAppId');
       if (appId) config.headers['x-app-id'] = appId;
 
-      // 👇 SỬA ĐOẠN NÀY: Logic ưu tiên Token
       const userToken = localStorage.getItem('simulationUserToken');
-      const ownerToken = localStorage.getItem('ownerToken'); // Lấy thêm token owner
+      const ownerToken = localStorage.getItem('ownerToken');
 
       if (userToken) {
-        // Ưu tiên 1: Đang giả lập User cụ thể
         config.headers.Authorization = `Bearer ${userToken}`;
       } else if (ownerToken) {
-        // Ưu tiên 2: Dùng quyền Owner (để test trong Playground)
         config.headers.Authorization = `Bearer ${ownerToken}`;
       }
 
       return config;
     });
 
+    // 🔥 Auto-refresh for usage API too
     this.usageApi.interceptors.response.use(
       (res) => res,
-      (error) => {
+      async (error) => {
+        const originalRequest = error.config;
+
+        // Only auto-refresh if using owner token (not user simulation)
+        const isUsingOwnerToken = !localStorage.getItem('simulationUserToken');
+
+        if (error.response?.status === 401 && !originalRequest._retry && isUsingOwnerToken) {
+          originalRequest._retry = true;
+
+          try {
+            const newToken = await this._refreshToken();
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            return this.usageApi(originalRequest);
+          } catch (refreshError) {
+            return Promise.reject(refreshError);
+          }
+        }
+
         if (error.response?.status === 403) {
           console.warn(error.response.data?.message || 'Action not allowed');
         }
+
         return Promise.reject(error);
       }
     );
@@ -125,12 +195,29 @@ class APIClient {
       return config;
     });
 
+    // 🔥 Auto-refresh for RT usage API
     this.rtUsageApi.interceptors.response.use(
       (res) => res,
-      (error) => {
+      async (error) => {
+        const originalRequest = error.config;
+        const isUsingOwnerToken = !localStorage.getItem('simulationUserToken');
+
+        if (error.response?.status === 401 && !originalRequest._retry && isUsingOwnerToken) {
+          originalRequest._retry = true;
+
+          try {
+            const newToken = await this._refreshToken();
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            return this.rtUsageApi(originalRequest);
+          } catch (refreshError) {
+            return Promise.reject(refreshError);
+          }
+        }
+
         if (error.response?.status === 403) {
           console.warn(error.response.data?.message || 'Action not allowed');
         }
+
         return Promise.reject(error);
       }
     );
@@ -155,4 +242,3 @@ class APIClient {
 }
 
 export default new APIClient();
-

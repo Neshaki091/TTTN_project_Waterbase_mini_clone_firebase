@@ -31,6 +31,10 @@ router.post('/:id/change-password', usermiddleware, checkRole(3), changePassword
 router.post('/login', loginUser);
 router.post('/logout', usermiddleware, logoutUser);
 
+// 🔄 Refresh Token
+const { refreshUserAccessToken } = require('../util/newRefreshToken');
+router.post('/refresh-token', refreshUserAccessToken);
+
 // 📊 Stats
 router.get('/stats', checkAppAccess, getAppStats);
 

@@ -1,5 +1,6 @@
 const express = require('express');
 const dotenv = require('dotenv');
+const cookieParser = require('cookie-parser');
 const connectDB = require('./util/connectdb');
 dotenv.config();
 const verifyRoutes = require('./routes/verify.routes');
@@ -11,6 +12,7 @@ const PORT = process.env.PORT || 3000;
 
 
 app.use(express.json());
+app.use(cookieParser());  // ✅ Enable cookie parsing
 connectDB();
 
 // Health check endpoint

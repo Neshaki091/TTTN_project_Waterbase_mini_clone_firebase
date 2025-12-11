@@ -34,6 +34,10 @@ router.post('/administrator', createWaterbaseAdmin);
 router.post('/login', loginOwner);
 router.post('/logout', ownermiddleware, logoutOwner);
 
+// 🔄 Refresh Token
+const { refreshOwnerAccessToken } = require('../util/newRefreshToken');
+router.post('/refresh-token', refreshOwnerAccessToken);
+
 // 📊 Admin Stats - MUST come before /:id routes
 router.get('/admin/stats', ownermiddleware, checkRole(1), getSystemStats);
 

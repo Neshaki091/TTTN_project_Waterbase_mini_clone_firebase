@@ -13,7 +13,9 @@ export const authService = {
   loginOwner: async (credentials) => {
     const response = await authApi.post(API_ENDPOINTS.AUTH.OWNERS.LOGIN, credentials);
     if (response.data.accessToken) {
+      // 🔥 Firebase-style: Lưu CẢ access token VÀ refresh token
       localStorage.setItem('ownerToken', response.data.accessToken);
+      localStorage.setItem('ownerRefreshToken', response.data.refreshToken);  // ← MỚI!
       localStorage.setItem('ownerData', JSON.stringify(response.data.owner || response.data));
     }
     return response.data;
@@ -24,9 +26,34 @@ export const authService = {
     const response = await authApi.post(API_ENDPOINTS.AUTH.OWNERS.REGISTER, ownerData);
     if (response.data.accessToken) {
       localStorage.setItem('ownerToken', response.data.accessToken);
+      localStorage.setItem('ownerRefreshToken', response.data.refreshToken);  // ← MỚI!
       localStorage.setItem('ownerData', JSON.stringify(response.data.owner || response.data));
     }
     return response.data;
+  },
+
+  // 🔥 Refresh Owner Token (Token Rotation)
+  refreshOwnerToken: async () => {
+    const refreshToken = localStorage.getItem('ownerRefreshToken');
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    try {
+      const response = await authApi.post(API_ENDPOINTS.AUTH.OWNERS.REFRESH_TOKEN, {
+        refreshToken
+      });
+
+      // 🔥 Token Rotation: Update BOTH tokens
+      localStorage.setItem('ownerToken', response.data.accessToken);
+      localStorage.setItem('ownerRefreshToken', response.data.refreshToken);  // ← NEW token!
+
+      return response.data.accessToken;
+    } catch (error) {
+      // Refresh failed - clear tokens and redirect to login
+      authService.logoutOwner();
+      throw error;
+    }
   },
 
   // Owner Logout
@@ -45,7 +72,9 @@ export const authService = {
         console.error('Logout error:', error);
       }
     }
+    // Clear ALL tokens
     localStorage.removeItem('ownerToken');
+    localStorage.removeItem('ownerRefreshToken');  // ← MỚI!
     localStorage.removeItem('ownerData');
     localStorage.removeItem('currentAppId');
   },
@@ -75,4 +104,3 @@ export const authService = {
 };
 
 export default authService;
-

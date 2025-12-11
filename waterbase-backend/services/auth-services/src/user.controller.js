@@ -82,6 +82,7 @@ exports.createUser = async (req, res) => {
         const refreshToken = generateRefreshToken(user._id);
         await addUserRefreshToken(user._id, refreshToken, accessToken);
 
+        // ✅ Firebase-style: Trả refresh token trong response body
         res.status(201).json({
             message: 'User created successfully',
             user: {
@@ -91,7 +92,7 @@ exports.createUser = async (req, res) => {
                 role: user.role
             },
             accessToken,
-            refreshToken
+            refreshToken  // ← Trả về
         });
     } catch (err) {
         res.status(500).json({ message: 'Error creating user', error: err.message });
@@ -158,7 +159,9 @@ exports.loginUser = async (req, res) => {
         const refreshToken = generateRefreshToken(user._id);
         await addUserRefreshToken(user._id, refreshToken, accessToken);
 
+        // ✅ Firebase-style: Trả refresh token trong response body
         res.status(200).json({
+            message: 'Login successful',
             user: {
                 id: user._id,
                 email: user.profile.email,
@@ -166,7 +169,7 @@ exports.loginUser = async (req, res) => {
                 role: user.role
             },
             accessToken,
-            refreshToken
+            refreshToken  // ← Trả về
         });
     } catch (err) {
         res.status(500).json({ message: 'Error during login', error: err.message });
@@ -182,7 +185,8 @@ exports.logoutUser = async (req, res) => {
     const accessToken = authHeader.split(' ')[1];
 
     try {
-        await deleteUserRefreshToken(req.user._id, accessToken);
+        await deleteUserRefreshToken(req.user.id, accessToken);
+
         res.status(200).json({ message: 'Logout successful' });
     } catch (err) {
         res.status(500).json({ message: 'Error during logout', error: err });
