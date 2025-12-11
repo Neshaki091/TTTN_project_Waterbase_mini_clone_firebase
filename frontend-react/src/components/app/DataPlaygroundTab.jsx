@@ -12,7 +12,6 @@ import {
   FiX
 } from 'react-icons/fi';
 import databaseService from '../../services/database.service';
-import realtimeService from '../../services/realtime.service';
 import appService from '../../services/app.service';
 import Button from '../common/Button';
 import Input from '../common/Input';
@@ -46,7 +45,7 @@ const DataPlaygroundTab = ({ appId }) => {
 
   // --- Effects ---
 
-  // 1. Init App ID
+  // Init App ID
   useEffect(() => {
     if (appId) {
       localStorage.setItem('currentAppId', appId);
@@ -58,8 +57,8 @@ const DataPlaygroundTab = ({ appId }) => {
   const loadUsageStats = async () => {
     try {
       setUsageLoading(true);
-      const data = await appService.getWaterDBUsage(appId);
-      setWaterdbUsage(data);
+      const waterdbData = await appService.getWaterDBUsage(appId);
+      setWaterdbUsage(waterdbData);
     } catch (error) {
       console.error('Failed to load usage stats:', error);
     } finally {
@@ -67,7 +66,7 @@ const DataPlaygroundTab = ({ appId }) => {
     }
   };
 
-  // 2. Handle Simulation Token
+  // Handle Simulation Token
   useEffect(() => {
     if (simulateUser && userToken) {
       localStorage.setItem('simulationUserToken', userToken);
@@ -76,60 +75,12 @@ const DataPlaygroundTab = ({ appId }) => {
     }
   }, [simulateUser, userToken]);
 
-  // 3. Fetch Collections on Mount
+  // Fetch Collections on Mount
   useEffect(() => {
     if (appId) {
       fetchCollections();
     }
   }, [appId]);
-
-  // 4. Realtime Connection
-  useEffect(() => {
-    if (appId) {
-      realtimeService.connect(appId);
-
-      const handleEvent = (event) => {
-        console.log('Realtime Event:', event);
-
-        // If a new collection is created (by adding first doc), refresh collections list
-        if (event.type === 'create') {
-          // We might want to refresh collections list occasionally or check if it's a new collection
-          // For simplicity, let's just refresh collections if we are not currently creating one
-          if (!collections.includes(event.collection)) {
-            fetchCollections();
-          }
-        }
-
-        if (event.collection === selectedCollection) {
-          if (event.type === 'create' || event.type === 'delete') {
-            fetchDocuments(selectedCollection);
-            toast.info(`Tài liệu đã được ${event.type === 'create' ? 'tạo' : 'xóa'} trong ${event.collection}`);
-          }
-
-          if (event.type === 'update' && event.documentId === selectedDocumentId) {
-            toast.info('Tài liệu này đã được cập nhật từ bên ngoài.');
-          }
-        }
-      };
-
-      realtimeService.onEvent(handleEvent);
-
-      return () => {
-        realtimeService.offEvent(handleEvent);
-        realtimeService.disconnect();
-      };
-    }
-  }, [appId, selectedCollection, selectedDocumentId, collections]);
-
-  // 5. Subscribe to Collection
-  useEffect(() => {
-    if (selectedCollection) {
-      realtimeService.subscribe(selectedCollection);
-      return () => {
-        realtimeService.unsubscribe(selectedCollection);
-      };
-    }
-  }, [selectedCollection]);
 
   // --- Actions ---
 

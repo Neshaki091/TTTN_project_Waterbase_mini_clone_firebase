@@ -4,7 +4,11 @@ import Card from '../common/Card';
 const ServiceUsageCard = ({ title, icon: Icon, usage, loading, compact = false }) => {
     const { totalCollections = 0, totalDocuments = 0, usedBytes = 0 } = usage || {};
     const quotaBytes = 100 * 1024 * 1024; // 100MB
-    const usedMB = (usedBytes / (1024 * 1024)).toFixed(2);
+
+    // Smart display: show KB if < 1MB, otherwise show MB
+    const usedMB = usedBytes / (1024 * 1024);
+    const usedKB = usedBytes / 1024;
+    const displayUsed = usedMB >= 1 ? `${usedMB.toFixed(2)} MB` : `${usedKB.toFixed(2)} KB`;
     const quotaMB = 100;
     const percentage = Math.min((usedBytes / quotaBytes) * 100, 100);
 
@@ -23,7 +27,7 @@ const ServiceUsageCard = ({ title, icon: Icon, usage, loading, compact = false }
                         <span className="text-sm font-medium text-gray-300">{title}</span>
                     </div>
                     <span className="text-xs text-gray-400">
-                        {usedMB} / {quotaMB} MB
+                        {displayUsed} / {quotaMB} MB
                     </span>
                 </div>
 
@@ -74,7 +78,7 @@ const ServiceUsageCard = ({ title, icon: Icon, usage, loading, compact = false }
                     <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-400">Dung lượng sử dụng</span>
                         <span className="text-sm font-semibold text-white">
-                            {usedMB} MB / {quotaMB} MB
+                            {displayUsed} / {quotaMB} MB
                         </span>
                     </div>
 

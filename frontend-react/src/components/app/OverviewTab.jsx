@@ -4,71 +4,8 @@ import { FiCopy, FiKey, FiRefreshCw, FiDatabase, FiActivity } from 'react-icons/
 import appService from '../../services/app.service';
 import Card from '../common/Card';
 import Button from '../common/Button';
+import ServiceUsageCard from '../common/ServiceUsageCard';
 import API_ENDPOINTS from '../../config/api.config';
-
-const ServiceUsageCard = ({ title, icon: Icon, usage, loading }) => {
-  const { totalCollections = 0, totalDocuments = 0, usedBytes = 0 } = usage || {};
-  const quotaBytes = 100 * 1024 * 1024; // 100MB
-  const usedMB = (usedBytes / (1024 * 1024)).toFixed(2);
-  const quotaMB = 100;
-  const percentage = Math.min((usedBytes / quotaBytes) * 100, 100);
-
-  const getProgressColor = () => {
-    if (percentage >= 90) return 'bg-red-500';
-    if (percentage >= 75) return 'bg-yellow-500';
-    return 'bg-blue-500';
-  };
-
-  return (
-    <Card>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-blue-500/20 rounded-lg">
-            <Icon className="text-blue-400" size={24} />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-white">{title}</h3>
-            <p className="text-sm text-gray-400">
-              {totalCollections} collections • {totalDocuments} documents
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="text-gray-400 text-sm">Đang tải...</div>
-      ) : (
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-400">Dung lượng sử dụng</span>
-            <span className="text-sm font-semibold text-white">
-              {usedMB} MB / {quotaMB} MB
-            </span>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="w-full bg-gray-700 rounded-full h-2.5">
-            <div
-              className={`h-2.5 rounded-full transition-all duration-300 ${getProgressColor()}`}
-              style={{ width: `${percentage}%` }}
-            ></div>
-          </div>
-
-          {percentage >= 80 && (
-            <div className="text-xs text-yellow-400 flex items-center space-x-1">
-              <span>⚠️</span>
-              <span>
-                {percentage >= 90
-                  ? 'Dung lượng gần đầy! Hãy xóa bớt dữ liệu.'
-                  : 'Dung lượng sắp đầy.'}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-    </Card>
-  );
-};
 
 const OverviewTab = ({ app, appId }) => {
   const [apiKey, setApiKey] = useState(null);

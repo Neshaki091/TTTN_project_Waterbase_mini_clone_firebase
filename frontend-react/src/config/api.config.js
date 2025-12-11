@@ -21,6 +21,7 @@ export const API_ENDPOINTS = {
   },
   DATABASE: {
     BASE: `${API_BASE}/api/v1/waterdb`,
+    STATS: `${API_BASE}/api/v1/waterdb/stats`,
     COLLECTIONS: `${API_BASE}/api/v1/waterdb/collections`,
     COLLECTION: (collectionName) => `${API_BASE}/api/v1/waterdb/${collectionName}`,
     DOCUMENT: (collectionName, docId) => `${API_BASE}/api/v1/waterdb/${collectionName}/${docId}`,
@@ -39,6 +40,7 @@ export const API_ENDPOINTS = {
   },
   RTWATERDB: {
     BASE: `${API_BASE}/api/v1/rtwaterdb`,
+    STATS: `${API_BASE}/api/v1/rtwaterdb/stats`,
     COLLECTIONS: `${API_BASE}/api/v1/rtwaterdb/collections`,
     COLLECTION: (collectionName) => `${API_BASE}/api/v1/rtwaterdb/${collectionName}`,
     DOCUMENT: (collectionName, docId) => `${API_BASE}/api/v1/rtwaterdb/${collectionName}/${docId}`,

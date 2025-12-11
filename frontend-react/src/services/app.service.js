@@ -46,18 +46,16 @@ export const appService = {
 
   // Get WaterDB usage stats
   getWaterDBUsage: async (appId) => {
-    const response = await apiClient.usage.get('/stats', {
-      headers: { 'x-app-id': appId }
-    });
-    return response;
+    // Note: appId is set in localStorage by the component, interceptor will use it
+    const response = await apiClient.usage.get('/stats');
+    return response.data;
   },
 
   // Get RTWaterDB usage stats
   getRTWaterDBUsage: async (appId) => {
-    const response = await apiClient.rtUsage.get('/stats', {
-      headers: { 'x-app-id': appId }
-    });
-    return response;
+    // Note: appId is set in localStorage by the component, interceptor will use it
+    const response = await apiClient.rtUsage.get('/stats');
+    return response.data;
   },
 };
 
