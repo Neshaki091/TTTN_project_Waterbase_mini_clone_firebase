@@ -101,6 +101,44 @@ export const authService = {
     const ownerData = authService.getCurrentOwner();
     return ownerData?.role || null;
   },
+
+  // Forgot Password - Request password reset
+  forgotPassword: async (email) => {
+    const response = await authApi.post(API_ENDPOINTS.AUTH.OWNERS.FORGOT_PASSWORD, { email });
+    return response.data;
+  },
+
+  // Change Password - Authenticated user changes password
+  changePassword: async (currentPassword, newPassword) => {
+    const token = localStorage.getItem('ownerToken');
+    const response = await authApi.post(
+      API_ENDPOINTS.AUTH.OWNERS.CHANGE_PASSWORD,
+      { currentPassword, newPassword },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    return response.data;
+  },
+
+  // Update Profile - Update username and other profile info
+  updateProfile: async (profileData) => {
+    const token = localStorage.getItem('ownerToken');
+    const response = await authApi.put(
+      API_ENDPOINTS.AUTH.OWNERS.UPDATE_PROFILE,
+      profileData,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    // Update local storage with new profile data
+    if (response.data.owner) {
+      localStorage.setItem('ownerData', JSON.stringify(response.data.owner));
+    }
+
+    return response.data;
+  },
 };
 
 export default authService;

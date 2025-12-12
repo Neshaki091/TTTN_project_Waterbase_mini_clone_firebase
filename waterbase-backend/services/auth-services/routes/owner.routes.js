@@ -13,7 +13,10 @@ const {
   getOwnerUsage,
   lockOwner,
   getDashboardStats,
-  getAllAppsWithStats
+  getAllAppsWithStats,
+  forgotPassword,
+  changePassword,
+  updateProfile
 } = require('../src/owner.controller');
 
 const express = require('express');
@@ -64,5 +67,13 @@ router.delete('/:id', ownermiddleware, checkRole(1), deleteOwner);
 
 // Thêm/xóa apps chỉ admin hoặc owner chính
 router.put('/:id/apps', ownermiddleware, checkRole(2), updateOwnerApps);
+
+// 🔑 Password Recovery & Profile Management
+// Public route for forgot password
+router.post('/forgot-password', forgotPassword);
+
+// Protected routes for authenticated users
+router.post('/change-password', ownermiddleware, changePassword);
+router.put('/profile', ownermiddleware, updateProfile);
 
 module.exports = router;

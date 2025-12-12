@@ -124,6 +124,14 @@ const Login = () => {
                 required
                 placeholder="••••••••"
               />
+              <div className="text-right -mt-2">
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  Quên mật khẩu?
+                </Link>
+              </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
               </Button>

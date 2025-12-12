@@ -13,6 +13,9 @@ import AllAppsView from './pages/AllAppsView';
 import OwnerManagement from './pages/OwnerManagement';
 import Guide from './pages/Guide';
 import SDKDownload from './pages/SDKDownload';
+import ForgotPassword from './pages/ForgotPassword';
+import UserProfile from './pages/UserProfile';
+import ChangePassword from './pages/ChangePassword';
 
 // Protected Route Component
 const ProtectedRoute = ({ adminOnly = false }) => {
@@ -43,6 +46,7 @@ function App() {
             <Router>
                 <Routes>
                     <Route path="/login" element={<Login />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
 
                     {/* User Routes */}
                     <Route element={<ProtectedRoute />}>
@@ -50,6 +54,8 @@ function App() {
                         <Route path="/guide" element={<Guide />} />
                         <Route path="/sdk-download" element={<SDKDownload />} />
                         <Route path="/app/:appId" element={<AppDetail />} />
+                        <Route path="/profile" element={<UserProfile />} />
+                        <Route path="/change-password" element={<ChangePassword />} />
                     </Route>
 
                     {/* Admin Routes */}

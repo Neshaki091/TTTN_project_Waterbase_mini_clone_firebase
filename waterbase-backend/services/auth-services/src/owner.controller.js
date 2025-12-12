@@ -95,7 +95,7 @@ exports.getOwnerById = async (req, res) => {
 
 // 🧱 Tạo owner mới
 exports.createOwner = async (req, res) => {
-    const { name, email, password } = req.body;
+    const { name, username, email, password } = req.body;
 
     try {
         const existing = await OwnerSchema.findOne({ "profile.email": email });
@@ -104,7 +104,11 @@ exports.createOwner = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const owner = new OwnerSchema({
-            profile: { name, email },
+            profile: {
+                name: name || username,
+                username: username,
+                email
+            },
             password: hashedPassword,
             role: 'owner'
         });
@@ -559,3 +563,135 @@ exports.getAllAppsWithStats = async (req, res) => {
         res.status(500).json({ message: 'Error retrieving apps', error: err.message });
     }
 };
+
+// 🔑 Forgot Password - Send temporary password via email
+exports.forgotPassword = async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+    }
+
+    try {
+        const owner = await OwnerSchema.findOne({ "profile.email": email });
+
+        // For security, don't reveal if email exists or not
+        if (!owner) {
+            return res.status(200).json({
+                message: 'Nếu email tồn tại trong hệ thống, mật khẩu tạm thời đã được gửi đến email của bạn.'
+            });
+        }
+
+        // Generate temporary password (8 characters: letters + numbers)
+        const generateTempPassword = () => {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+            let password = '';
+            for (let i = 0; i < 8; i++) {
+                password += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return password;
+        };
+
+        const temporaryPassword = generateTempPassword();
+        const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
+
+        // Update password in database
+        owner.password = hashedPassword;
+        await owner.save();
+
+        // Send email with temporary password
+        const emailService = require('../util/email.service');
+        await emailService.sendPasswordResetEmail(
+            email,
+            temporaryPassword,
+            owner.profile.username || owner.profile.name || 'User'
+        );
+
+        console.log(`✅ Password reset email sent to ${email}`);
+        res.status(200).json({
+            message: 'Mật khẩu tạm thời đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.'
+        });
+
+    } catch (err) {
+        console.error('Error in forgotPassword:', err);
+        res.status(500).json({
+            message: 'Đã xảy ra lỗi khi xử lý yêu cầu. Vui lòng thử lại sau.',
+            error: err.message
+        });
+    }
+};
+
+// 🔐 Change Password - Authenticated user changes their password
+exports.changePassword = async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: 'Current password and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+        return res.status(400).json({ message: 'New password must be at least 6 characters long' });
+    }
+
+    try {
+        const owner = await OwnerSchema.findById(req.user.id);
+        if (!owner) {
+            return res.status(404).json({ message: 'Owner not found' });
+        }
+
+        // Verify current password
+        const isMatch = await bcrypt.compare(currentPassword, owner.password);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Current password is incorrect' });
+        }
+
+        // Hash and save new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        owner.password = hashedPassword;
+        await owner.save();
+
+        console.log(`✅ Password changed for user ${owner.profile.email}`);
+        res.status(200).json({ message: 'Password changed successfully' });
+
+    } catch (err) {
+        console.error('Error in changePassword:', err);
+        res.status(500).json({ message: 'Error changing password', error: err.message });
+    }
+};
+
+// 👤 Update Profile - Update username and other profile info
+exports.updateProfile = async (req, res) => {
+    const { username, name } = req.body;
+
+    if (!username && !name) {
+        return res.status(400).json({ message: 'At least one field (username or name) is required' });
+    }
+
+    try {
+        const owner = await OwnerSchema.findById(req.user.id);
+        if (!owner) {
+            return res.status(404).json({ message: 'Owner not found' });
+        }
+
+        // Update profile fields
+        if (username) {
+            owner.profile.username = username;
+        }
+        if (name) {
+            owner.profile.name = name;
+        }
+
+        await owner.save();
+
+        console.log(`✅ Profile updated for user ${owner.profile.email}`);
+        res.status(200).json({
+            message: 'Profile updated successfully',
+            owner: sanitizeOwner(owner)
+        });
+
+    } catch (err) {
+        console.error('Error in updateProfile:', err);
+        res.status(500).json({ message: 'Error updating profile', error: err.message });
+    }
+};
+

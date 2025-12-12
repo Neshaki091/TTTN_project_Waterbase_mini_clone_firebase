@@ -11,6 +11,9 @@ export const API_ENDPOINTS = {
       REGISTER: '/owners',
       REFRESH_TOKEN: '/owners/refresh-token',
       BY_ID: (id) => `/owners/${id}`,
+      FORGOT_PASSWORD: '/owners/forgot-password',
+      CHANGE_PASSWORD: '/owners/change-password',
+      UPDATE_PROFILE: '/owners/profile',
     },
   },
   APPS: {
