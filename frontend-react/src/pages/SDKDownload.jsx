@@ -81,10 +81,10 @@ const SDKDownload = () => {
                             <div className="flex-1">
                                 <h3 className="text-lg font-medium text-white mb-2">Cài đặt dependencies</h3>
                                 <p className="text-gray-400 mb-3">
-                                    SDK yêu cầu một số thư viện phụ thuộc. Hãy cài đặt chúng qua npm:
+                                    SDK yêu cầu thư viện Socket.IO Client để hỗ trợ realtime. Hãy cài đặt qua npm:
                                 </p>
                                 <CodeBlock title="Terminal">
-                                    npm install axios socket.io-client
+                                    npm install socket.io-client
                                 </CodeBlock>
                             </div>
                         </div>
@@ -94,19 +94,29 @@ const SDKDownload = () => {
                                 3
                             </div>
                             <div className="flex-1">
-                                <h3 className="text-lg font-medium text-white mb-2">Import và Sử dụng</h3>
+                                <h3 className="text-lg font-medium text-white mb-2">Tải file cấu hình</h3>
                                 <p className="text-gray-400 mb-3">
-                                    Import SDK từ thư mục local thay vì từ <code>node_modules</code>.
+                                    Vào trang <strong>App Detail → Settings</strong> của ứng dụng bạn muốn sử dụng,
+                                    sau đó click <strong>"Tải cấu hình (Giữ API Key cũ)"</strong> để tải file <code>waterbase-service.json</code>.
+                                    Đặt file này vào thư mục gốc của dự án.
+                                </p>
+                                <div className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex items-center text-sm text-gray-300 mb-3">
+                                    <FiFolder className="mr-2 text-yellow-500" />
+                                    your-project/
+                                    <span className="mx-2 text-gray-600">/</span>
+                                    <FiCode className="mr-2 text-green-500" />
+                                    waterbase-service.json
+                                </div>
+                                <p className="text-gray-400 mb-3">
+                                    SDK sẽ tự động load cấu hình từ file này. Bạn chỉ cần khởi tạo SDK mà không cần truyền config:
                                 </p>
                                 <CodeBlock title="src/config/waterbase.js">
                                     {`// Import từ thư mục local
 import Waterbase from '../waterbase-sdk'; 
 
+// SDK tự động load config từ waterbase-service.json
 const waterbase = new Waterbase({
-    apiUrl: 'https://api.waterbase.click',
-    appId: 'YOUR_APP_ID',
-    apiKey: 'YOUR_API_KEY',
-    debug: true
+    debug: true  // Optional: bật debug mode
 });
 
 export default waterbase;`}
