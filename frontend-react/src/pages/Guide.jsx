@@ -22,8 +22,8 @@ const TabButton = ({ active, onClick, icon: Icon, label }) => (
     <button
         onClick={onClick}
         className={`w-full flex items-center space-x-3 px-4 py-3 text-sm font-medium transition-colors rounded-lg ${active
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+            ? 'bg-blue-600 text-white'
+            : 'text-gray-400 hover:bg-gray-800 hover:text-white'
             }`}
     >
         <Icon size={18} />
@@ -32,10 +32,187 @@ const TabButton = ({ active, onClick, icon: Icon, label }) => (
 );
 
 const Guide = () => {
-    const [activeTab, setActiveTab] = useState('auth');
+    const [activeTab, setActiveTab] = useState('setup');
 
     const renderContent = () => {
         switch (activeTab) {
+            case 'setup':
+                return (
+                    <div className="space-y-8 animate-fadeIn">
+                        <div>
+                            <h2 className="text-2xl font-bold text-white mb-4 flex items-center">
+                                <FiCode className="mr-3" /> Khởi tạo SDK
+                            </h2>
+                            <p className="text-gray-400 mb-6">
+                                Hướng dẫn cài đặt và khởi tạo Waterbase SDK trong dự án của bạn.
+                            </p>
+
+                            <h3 className="text-xl font-semibold text-white mb-3">1. Cài đặt SDK</h3>
+                            <p className="text-gray-400 mb-2">Cài đặt Waterbase SDK qua npm:</p>
+                            <CodeBlock title="Terminal">
+                                {`npm install waterbase-sdk`}
+                            </CodeBlock>
+
+                            <h3 className="text-xl font-semibold text-white mt-8 mb-3">2. Tải file cấu hình</h3>
+                            <p className="text-gray-400 mb-2">
+                                Tải file <code className="px-2 py-1 bg-gray-800 rounded text-blue-400">waterbase-service.json</code> từ trang Settings của ứng dụng và đặt vào thư mục <code className="px-2 py-1 bg-gray-800 rounded text-blue-400">public/</code> (hoặc thư mục static tương ứng).
+                            </p>
+                            <CodeBlock title="public/waterbase-service.json">
+                                {`{
+  "apiUrl": "https://api.waterbase.click",
+  "appId": "your_app_id",
+  "apiKey": "wbase_your_api_key",
+  "projectName": "Your Project",
+  "projectDescription": ""
+}`}
+                            </CodeBlock>
+
+                            <h3 className="text-xl font-semibold text-white mt-8 mb-3">3. Tạo module khởi tạo (Browser)</h3>
+                            <p className="text-gray-400 mb-2">
+                                Tạo file <code className="px-2 py-1 bg-gray-800 rounded text-blue-400">src/waterbase.js</code> để load cấu hình từ file JSON:
+                            </p>
+                            <CodeBlock title="src/waterbase.js">
+                                {`/**
+ * Waterbase SDK initialization for browser environment
+ * Loads configuration from /waterbase-service.json
+ */
+
+import Waterbase from 'waterbase-sdk';
+
+let waterbaseInstance = null;
+let configPromise = null;
+
+/**
+ * Load configuration from waterbase-service.json
+ */
+async function loadConfig() {
+    try {
+        const response = await fetch('/waterbase-service.json');
+        if (!response.ok) {
+            throw new Error(\`Failed to load: \${response.statusText}\`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('[Waterbase] Error loading config:', error);
+        throw new Error('Could not load Waterbase configuration.');
+    }
+}
+
+/**
+ * Initialize Waterbase SDK with config from waterbase-service.json
+ */
+export async function initWaterbase() {
+    if (waterbaseInstance) return waterbaseInstance;
+    if (configPromise) {
+        await configPromise;
+        return waterbaseInstance;
+    }
+
+    configPromise = loadConfig();
+    
+    try {
+        const config = await configPromise;
+        waterbaseInstance = new Waterbase({
+            apiUrl: config.apiUrl,
+            appId: config.appId,
+            apiKey: config.apiKey,
+            debug: true
+        });
+        console.log('[Waterbase] SDK initialized successfully');
+        return waterbaseInstance;
+    } catch (error) {
+        configPromise = null;
+        throw error;
+    }
+}
+
+/**
+ * Get the initialized Waterbase instance
+ */
+export function getWaterbase() {
+    if (!waterbaseInstance) {
+        throw new Error('Waterbase not initialized. Call initWaterbase() first.');
+    }
+    return waterbaseInstance;
+}
+
+export default getWaterbase;`}
+                            </CodeBlock>
+
+                            <h3 className="text-xl font-semibold text-white mt-8 mb-3">4. Sử dụng trong React Component</h3>
+                            <p className="text-gray-400 mb-2">Khởi tạo SDK trong component chính của bạn:</p>
+                            <CodeBlock title="App.jsx">
+                                {`import { useState, useEffect } from 'react';
+import { initWaterbase } from './waterbase';
+
+let waterbase = null;
+
+function App() {
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const initialize = async () => {
+            try {
+                // Khởi tạo SDK
+                waterbase = await initWaterbase();
+                
+                // Kiểm tra user đã đăng nhập
+                const currentUser = waterbase.auth.getCurrentUser();
+                if (currentUser) {
+                    console.log('User logged in:', currentUser.email);
+                }
+            } catch (err) {
+                console.error('Failed to initialize:', err);
+                setError('Không thể khởi tạo ứng dụng');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        initialize();
+    }, []);
+
+    if (loading) return <div>Đang tải...</div>;
+    if (error) return <div>{error}</div>;
+
+    return <div>Ứng dụng của bạn</div>;
+}`}
+                            </CodeBlock>
+
+                            <h3 className="text-xl font-semibold text-white mt-8 mb-3">5. Khởi tạo trực tiếp (Node.js)</h3>
+                            <p className="text-gray-400 mb-2">
+                                Trong môi trường Node.js, SDK có thể tự động load từ file <code className="px-2 py-1 bg-gray-800 rounded text-blue-400">waterbase-service.json</code>:
+                            </p>
+                            <CodeBlock title="server.js">
+                                {`import Waterbase from 'waterbase-sdk';
+
+// SDK tự động load từ waterbase-service.json trong thư mục gốc
+const waterbase = new Waterbase();
+
+// Hoặc truyền config trực tiếp
+const waterbase = new Waterbase({
+    apiUrl: 'https://api.waterbase.click',
+    appId: 'your_app_id',
+    apiKey: 'wbase_your_api_key'
+});`}
+                            </CodeBlock>
+
+                            <div className="mt-8 p-4 bg-blue-900/20 border border-blue-700 rounded-lg">
+                                <h4 className="text-blue-400 font-semibold mb-2 flex items-center">
+                                    💡 Lưu ý quan trọng
+                                </h4>
+                                <ul className="text-gray-300 text-sm space-y-1 list-disc list-inside">
+                                    <li>Đảm bảo file <code className="px-1 bg-gray-800 rounded">waterbase-service.json</code> nằm trong thư mục public để truy cập được từ browser</li>
+                                    <li>Không commit file này vào Git nếu chứa thông tin nhạy cảm (thêm vào .gitignore)</li>
+                                    <li>Kiểm tra browser console để xem log khởi tạo thành công</li>
+                                    <li>Thêm null checks trước khi sử dụng <code className="px-1 bg-gray-800 rounded">waterbase</code> trong các function</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                );
+
             case 'auth':
                 return (
                     <div className="space-y-8 animate-fadeIn">
@@ -285,6 +462,12 @@ const imageUrl = waterbase.storage.getDownloadUrl('file_id_123');
                     <div className="lg:col-span-1">
                         <Card className="sticky top-8">
                             <div className="space-y-2">
+                                <TabButton
+                                    active={activeTab === 'setup'}
+                                    onClick={() => setActiveTab('setup')}
+                                    icon={FiCode}
+                                    label="Khởi tạo SDK"
+                                />
                                 <TabButton
                                     active={activeTab === 'auth'}
                                     onClick={() => setActiveTab('auth')}
