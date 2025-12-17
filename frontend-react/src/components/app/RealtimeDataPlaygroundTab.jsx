@@ -151,7 +151,7 @@ const RealtimeDataPlaygroundTab = ({ appId }) => {
     };
 
     const handleSelectDocument = (doc) => {
-        setSelectedDocumentId(doc._id || doc.id);
+        setSelectedDocumentId(doc.documentId || doc._id || doc.id);
         setDocumentData(JSON.stringify(doc, null, 2));
         setIsCreatingDoc(false);
     };
@@ -398,7 +398,7 @@ const RealtimeDataPlaygroundTab = ({ appId }) => {
                                     </div>
                                 )}
                                 {documents.map((doc) => {
-                                    const id = doc._id || doc.id;
+                                    const id = doc.documentId || doc._id || doc.id;
                                     return (
                                         <button
                                             key={id}
