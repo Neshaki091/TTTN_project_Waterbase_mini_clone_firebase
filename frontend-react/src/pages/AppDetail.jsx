@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FiInfo, FiShield, FiDatabase, FiFolder, FiActivity } from 'react-icons/fi';
+import { FiInfo, FiShield, FiDatabase, FiFolder, FiActivity, FiUsers } from 'react-icons/fi';
 import appService from '../services/app.service';
 import { useApp } from '../context/AppContext';
 import DashboardLayout from '../components/layout/DashboardLayout';
@@ -11,6 +11,7 @@ import DataPlaygroundTab from '../components/app/DataPlaygroundTab';
 import RealtimeDataPlaygroundTab from '../components/app/RealtimeDataPlaygroundTab';
 import StorageTab from '../components/app/StorageTab';
 import AppSettings from '../components/AppSettings';
+import UsersTab from '../components/app/UsersTab';
 
 const AppDetail = () => {
   const { appId } = useParams();
@@ -41,6 +42,7 @@ const AppDetail = () => {
 
   const tabs = [
     { id: 'overview', label: 'Tổng quan', icon: FiInfo },
+    { id: 'users', label: 'Người dùng', icon: FiUsers },
     { id: 'database', label: 'Cơ sở dữ liệu', icon: FiDatabase },
     { id: 'realtime', label: 'Realtime DB', icon: FiActivity },
     { id: 'storage', label: 'Lưu trữ', icon: FiFolder },
@@ -106,6 +108,7 @@ const AppDetail = () => {
       {/* Tab Content */}
       <div>
         {activeTab === 'overview' && <OverviewTab app={app} appId={appId} />}
+        {activeTab === 'users' && <UsersTab appId={appId} />}
         {activeTab === 'database' && <DataPlaygroundTab appId={appId} />}
         {activeTab === 'realtime' && <RealtimeDataPlaygroundTab appId={appId} />}
         {activeTab === 'storage' && <StorageTab appId={appId} />}

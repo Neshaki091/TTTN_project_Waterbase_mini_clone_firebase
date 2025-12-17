@@ -5,6 +5,7 @@ const {
     createUser,
     updateUser,
     deleteUser,
+    toggleUserStatus,
     changePassword,
     loginUser,
     logoutUser,
@@ -25,6 +26,9 @@ router.post('', createUser);
 router.put('/:id', ownermiddleware, checkAppAccess, checkRole(2), updateUser);
 
 router.delete('/:id', ownermiddleware, checkAppAccess, checkRole(2), deleteUser);
+
+// 🔒 Toggle user active status (lock/unlock)
+router.put('/:id/status', ownermiddleware, checkAppAccess, checkRole(2), toggleUserStatus);
 
 router.post('/:id/change-password', usermiddleware, checkRole(3), changePassword);
 

@@ -10,12 +10,14 @@ const {
 // 🧩 Hàm helper lọc dữ liệu an toàn
 function sanitizeUser(user) {
     if (!user) return null;
-    const { _id, profile, appId } = user;
+    const { _id, profile, appId, isActive } = user;
     return {
         _id,
         email: profile.email,
         username: profile.username,
-        appId
+        appId,
+        isActive,
+        createdAt: profile.createdAt
     };
 }
 
@@ -25,7 +27,7 @@ exports.getAllUsersInApp = async (req, res) => {
     if (!appId) return res.status(400).json({ message: 'x-app-id header required' });
 
     try {
-        const users = await UserSchema.find({ appId }).select('profile appId');
+        const users = await UserSchema.find({ appId }).select('profile appId isActive');
         res.status(200).json(users.map(u => sanitizeUser(u)));
     } catch (err) {
         res.status(500).json({ message: 'Error retrieving users', error: err });
@@ -37,7 +39,7 @@ exports.getUserById = async (req, res) => {
     const userId = req.params.id;
 
     try {
-        const user = await UserSchema.findById(userId).select('profile appId');
+        const user = await UserSchema.findById(userId).select('profile appId isActive');
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         // Owner chỉ được user cùng app
@@ -149,6 +151,12 @@ exports.loginUser = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
+        // Check if user account is locked
+        if (!user.isActive) {
+            return res.status(403).json({ message: 'Account is locked' });
+        }
+
+
         // CRITICAL: Include appId and role in JWT token
         const accessToken = generateAccessToken({
             id: user._id,
@@ -210,6 +218,32 @@ exports.changePassword = async (req, res) => {
         res.status(200).json({ message: 'Password changed successfully' });
     } catch (err) {
         res.status(500).json({ message: 'Error changing password', error: err });
+    }
+};
+
+// 🔒 Khóa/Mở khóa user
+exports.toggleUserStatus = async (req, res) => {
+    const userId = req.params.id;
+    const { isActive } = req.body;
+
+    try {
+        const user = await UserSchema.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Owner chỉ được toggle user cùng app
+        if (req.user.role === 'owner' && !req.user.apps.map(a => a.appId).includes(user.appId)) {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+
+        user.isActive = isActive;
+        await user.save();
+
+        res.status(200).json({
+            message: `User ${isActive ? 'activated' : 'deactivated'} successfully`,
+            user: sanitizeUser(user)
+        });
+    } catch (err) {
+        res.status(500).json({ message: 'Error updating user status', error: err });
     }
 };
 

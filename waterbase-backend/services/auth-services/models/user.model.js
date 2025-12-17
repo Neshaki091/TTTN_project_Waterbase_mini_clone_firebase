@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema({
     password: { type: String, required: true },
     appId: { type: String, required: true, index: true },
     role: { type: String, default: 'user' },
+    isActive: { type: Boolean, default: true },
     tokens: [tokenSchema],
 });
 
