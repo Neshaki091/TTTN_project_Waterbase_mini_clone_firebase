@@ -22,6 +22,12 @@ exports.checkAction = (baseAction) => async (req, res, next) => {
     // If no user (API key mode), use default role 'user'
     const userRole = user?.role || 'user';
 
+    // 👑 Owner bypass: Owners have full permissions
+    if (userRole === 'owner') {
+        console.log(`👑 Owner action '${baseAction}' automatically allowed in app '${appId}'`);
+        return next();
+    }
+
     // Build action: 'create_products', 'read_orders', etc.
     const action = collectionName
         ? `${baseAction}_${collectionName}`

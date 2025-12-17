@@ -14,13 +14,13 @@ module.exports = (io) => {
     // Stats route
     router.get('/stats', controller.getStats);
 
-    // Routes with Rule checking
+    // Routes with Rule checking (new naming: documentId)
     router.get('/collections', checkAction('read'), controller.getCollections);
     router.get('/:collectionName', checkAction('read'), controller.getCollection);
     router.post('/:collectionName', checkQuota, checkAction('create'), controller.createDocument);
-    router.get('/:collectionName/:docId', checkAction('read'), controller.getDocument);
-    router.put('/:collectionName/:docId', checkQuota, checkAction('update'), controller.updateDocument);
-    router.delete('/:collectionName/:docId', checkAction('delete'), controller.deleteDocument);
+    router.get('/:collectionName/:documentId', checkAction('read'), controller.getDocument);
+    router.put('/:collectionName/:documentId', checkQuota, checkAction('update'), controller.updateDocument);
+    router.delete('/:collectionName/:documentId', checkAction('delete'), controller.deleteDocument);
 
     return router;
 };

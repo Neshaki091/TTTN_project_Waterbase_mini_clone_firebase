@@ -37,7 +37,7 @@ class StorageModule {
             throw new ValidationError('File ID is required');
         }
 
-        // Backend route: GET /:appId/:filename
+        // Backend route: /api/v1/storage/:appId/:filename
         const url = `${this.client.config.apiUrl}/api/v1/storage/${this.client.config.appId}/${fileId}`;
         const headers = this.client.getHeaders(null);
 
@@ -55,7 +55,7 @@ class StorageModule {
             throw new ValidationError('File ID is required');
         }
 
-        // Backend route: GET /:appId/:filename
+        // Backend route: /api/v1/storage/:appId/:filename
         return `${this.client.config.apiUrl}/api/v1/storage/${this.client.config.appId}/${fileId}`;
     }
 

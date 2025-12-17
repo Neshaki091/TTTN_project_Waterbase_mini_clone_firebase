@@ -30,14 +30,14 @@ export const rtwaterdbService = {
     },
 
     // Update document
-    updateDocument: async (collectionName, docId, documentData) => {
-        const response = await apiClient.rtUsage.put(`/${collectionName}/${docId}`, documentData);
+    updateDocument: async (collectionName, documentId, documentData) => {
+        const response = await apiClient.rtUsage.put(`/${collectionName}/${documentId}`, documentData);
         return response.data;
     },
 
     // Delete document
-    deleteDocument: async (collectionName, docId) => {
-        const response = await apiClient.rtUsage.delete(`/${collectionName}/${docId}`);
+    deleteDocument: async (collectionName, documentId) => {
+        const response = await apiClient.rtUsage.delete(`/${collectionName}/${documentId}`);
         return response.data;
     },
 };

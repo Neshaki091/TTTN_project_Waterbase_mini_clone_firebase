@@ -17,11 +17,21 @@ exports.listDocuments = async (appId, collection, query = {}) => {
 };
 
 exports.getDocument = async (appId, collection, documentId) => {
-    const doc = await DynamicDocument.findOne({
+    // Try to find by documentId first, then by _id
+    let doc = await DynamicDocument.findOne({
         appId,
         collection: sanitizeCollectionName(collection),
         documentId,
     });
+
+    // If not found by documentId, try MongoDB _id
+    if (!doc) {
+        doc = await DynamicDocument.findOne({
+            appId,
+            collection: sanitizeCollectionName(collection),
+            _id: documentId,
+        });
+    }
 
     if (!doc) {
         const error = new Error('Document not found');
@@ -53,7 +63,8 @@ exports.updateDocument = async (appId, collection, documentId, payload = {}, use
     const { data: explicitData, ...rest } = payload;
     const data = explicitData ?? rest;
 
-    const doc = await DynamicDocument.findOneAndUpdate(
+    // Try to update by documentId first
+    let doc = await DynamicDocument.findOneAndUpdate(
         {
             appId,
             collection: sanitizeCollectionName(collection),
@@ -66,6 +77,22 @@ exports.updateDocument = async (appId, collection, documentId, payload = {}, use
         { new: true }
     );
 
+    // If not found by documentId, try MongoDB _id
+    if (!doc) {
+        doc = await DynamicDocument.findOneAndUpdate(
+            {
+                appId,
+                collection: sanitizeCollectionName(collection),
+                _id: documentId,
+            },
+            {
+                data,
+                updatedBy: user?.id || user?._id || null,
+            },
+            { new: true }
+        );
+    }
+
     if (!doc) {
         const error = new Error('Document not found');
         error.status = 404;
@@ -76,11 +103,21 @@ exports.updateDocument = async (appId, collection, documentId, payload = {}, use
 };
 
 exports.deleteDocument = async (appId, collection, documentId) => {
-    const doc = await DynamicDocument.findOneAndDelete({
+    // Try to delete by documentId first
+    let doc = await DynamicDocument.findOneAndDelete({
         appId,
         collection: sanitizeCollectionName(collection),
         documentId,
     });
+
+    // If not found by documentId, try MongoDB _id
+    if (!doc) {
+        doc = await DynamicDocument.findOneAndDelete({
+            appId,
+            collection: sanitizeCollectionName(collection),
+            _id: documentId,
+        });
+    }
 
     if (!doc) {
         const error = new Error('Document not found');

@@ -11,20 +11,18 @@ const upload = multer({
     limits: { fileSize: 20 * 1024 * 1024 } // 20MB limit
 });
 
-// Middleware
+// Public access route - MUST be before auth middleware
+// This allows public access to uploaded images
+router.get('/:appId/:filename', storageController.getFile);
+
+// Middleware for protected routes
 router.use(verifyApp);
 router.use(authenticateUser);
 
-// Routes
+// Protected routes
 router.post('/upload', upload.single('file'), storageController.uploadFile);
 router.get('/files', storageController.listFiles);
 router.get('/stats', storageController.getStats);
 router.delete('/files/:filename', storageController.deleteFile);
-
-// Public access route (can be protected if needed, but usually for serving images)
-// Note: This route might need to bypass auth middleware if public access is desired.
-// For now, we keep it here but Nginx might route /api/v1/storage/:appId/:filename directly if configured,
-// or we handle it here.
-router.get('/:appId/:filename', storageController.getFile);
 
 module.exports = router;

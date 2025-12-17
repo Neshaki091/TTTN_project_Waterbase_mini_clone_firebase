@@ -34,8 +34,9 @@ module.exports = (io) => {
 
         getDocument: async (req, res) => {
             try {
-                const { collectionName, docId } = req.params;
-                const document = await rtwaterdbService.getDocument(req.appId, collectionName, docId);
+                const { collectionName, documentId, docId } = req.params;
+                const id = documentId || docId; // Support both naming conventions
+                const document = await rtwaterdbService.getDocument(req.appId, collectionName, id);
                 res.json(document);
             } catch (error) {
                 res.status(error.status || 500).json({ message: error.message });
@@ -57,8 +58,9 @@ module.exports = (io) => {
 
         updateDocument: async (req, res) => {
             try {
-                const { collectionName, docId } = req.params;
-                const document = await rtwaterdbService.updateDocument(req.appId, collectionName, docId, req.body, req.user);
+                const { collectionName, documentId, docId } = req.params;
+                const id = documentId || docId; // Support both naming conventions
+                const document = await rtwaterdbService.updateDocument(req.appId, collectionName, id, req.body, req.user);
 
                 emitUpdate(req.appId, collectionName, 'update', document);
 
@@ -70,10 +72,11 @@ module.exports = (io) => {
 
         deleteDocument: async (req, res) => {
             try {
-                const { collectionName, docId } = req.params;
-                const document = await rtwaterdbService.deleteDocument(req.appId, collectionName, docId);
+                const { collectionName, documentId, docId } = req.params;
+                const id = documentId || docId; // Support both naming conventions
+                const document = await rtwaterdbService.deleteDocument(req.appId, collectionName, id);
 
-                emitUpdate(req.appId, collectionName, 'delete', { documentId: docId });
+                emitUpdate(req.appId, collectionName, 'delete', { documentId: id });
 
                 res.json({ message: 'Document deleted successfully' });
             } catch (error) {
