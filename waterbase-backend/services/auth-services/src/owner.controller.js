@@ -491,6 +491,7 @@ exports.getDashboardStats = async (req, res) => {
             totalApps,
             newAppsThisMonth,
             totalDbStorage,
+            totalRtStorage,
             totalFileStorage,
             ownerBreakdown,
             trendsData

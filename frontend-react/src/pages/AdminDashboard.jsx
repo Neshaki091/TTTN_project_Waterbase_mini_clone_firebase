@@ -21,6 +21,7 @@ const AdminDashboard = () => {
         totalApps: 0,
         newAppsThisMonth: 0,
         totalDbStorage: 0,
+        totalRtStorage: 0,
         totalFileStorage: 0,
         ownerBreakdown: [],
         trendsData: []
@@ -97,7 +98,7 @@ const AdminDashboard = () => {
             {activeTab === 'system' && (
                 <div className="space-y-6">
                     {/* Stats Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                         <Card className="p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <FiUsers className="text-blue-400" size={32} />
@@ -122,12 +123,22 @@ const AdminDashboard = () => {
 
                         <Card className="p-6">
                             <div className="flex items-center justify-between mb-4">
-                                <FiDatabase className="text-purple-400" size={32} />
+                                <FiDatabase className="text-blue-400" size={32} />
                             </div>
                             <h3 className="text-2xl font-bold text-white mb-1">
                                 {formatBytes(stats.totalDbStorage)}
                             </h3>
-                            <p className="text-gray-400 text-sm">Lưu trữ CSDL</p>
+                            <p className="text-gray-400 text-sm">WaterDB</p>
+                        </Card>
+
+                        <Card className="p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <FiDatabase className="text-green-400" size={32} />
+                            </div>
+                            <h3 className="text-2xl font-bold text-white mb-1">
+                                {formatBytes(stats.totalRtStorage)}
+                            </h3>
+                            <p className="text-gray-400 text-sm">RTWaterDB</p>
                         </Card>
 
                         <Card className="p-6">
@@ -137,7 +148,7 @@ const AdminDashboard = () => {
                             <h3 className="text-2xl font-bold text-white mb-1">
                                 {formatBytes(stats.totalFileStorage)}
                             </h3>
-                            <p className="text-gray-400 text-sm">Lưu trữ tệp</p>
+                            <p className="text-gray-400 text-sm">Storage</p>
                         </Card>
                     </div>
 
@@ -172,8 +183,9 @@ const AdminDashboard = () => {
                                 <PieChart>
                                     <Pie
                                         data={[
-                                            { name: 'Database', value: stats.totalDbStorage },
-                                            { name: 'Files', value: stats.totalFileStorage }
+                                            { name: 'WaterDB', value: stats.totalDbStorage },
+                                            { name: 'RTWaterDB', value: stats.totalRtStorage },
+                                            { name: 'Storage', value: stats.totalFileStorage }
                                         ]}
                                         cx="50%"
                                         cy="50%"
@@ -183,7 +195,7 @@ const AdminDashboard = () => {
                                         fill="#8884d8"
                                         dataKey="value"
                                     >
-                                        {[0, 1].map((entry, index) => (
+                                        {[0, 1, 2].map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
                                     </Pie>
