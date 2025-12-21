@@ -59,20 +59,31 @@ async function startServer() {
           return {};
         }
 
-        // For now, return estimated stats based on active connections
-        // In a real implementation, you would track per-app connection counts
-        const totalConnections = io.engine.clientsCount;
-        const estimatedPerApp = Math.ceil(totalConnections / appIds.length);
+        // Import the service to get actual storage stats
+        const rtwaterdbService = require('./src/services/rtwaterdb.service');
 
         const statsObject = {};
-        appIds.forEach(appId => {
-          statsObject[appId] = {
-            totalConnections: estimatedPerApp,
-            totalMessages: estimatedPerApp * 10 // Estimate
-          };
-        });
 
-        console.log(`✅ Returning realtime stats for ${appIds.length} apps`);
+        // Calculate actual storage for each app
+        for (const appId of appIds) {
+          try {
+            const stats = await rtwaterdbService.getStats(appId);
+            statsObject[appId] = {
+              totalCollections: stats.totalCollections || 0,
+              totalDocuments: stats.totalDocuments || 0,
+              sizeBytes: stats.usedBytes || 0
+            };
+          } catch (err) {
+            console.error(`Error getting stats for app ${appId}:`, err);
+            statsObject[appId] = {
+              totalCollections: 0,
+              totalDocuments: 0,
+              sizeBytes: 0
+            };
+          }
+        }
+
+        console.log(`✅ Returning realtime stats for ${appIds.length} apps:`, statsObject);
         return statsObject;
       } catch (err) {
         console.error('❌ Error fetching realtime stats:', err);
