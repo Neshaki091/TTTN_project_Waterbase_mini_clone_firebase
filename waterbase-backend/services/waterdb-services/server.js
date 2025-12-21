@@ -55,17 +55,27 @@ async function startServer() {
                         const collections = await Document.distinct('collection', { appId });
                         const totalCollections = collections.length;
 
+                        // Calculate storage size
+                        const documents = await Document.find({ appId }).lean();
+                        let totalSize = 0;
+                        for (const doc of documents) {
+                            const jsonSize = JSON.stringify(doc).length;
+                            totalSize += jsonSize;
+                        }
+
                         return {
                             appId,
                             totalDocuments,
-                            totalCollections
+                            totalCollections,
+                            sizeBytes: totalSize
                         };
                     } catch (err) {
                         console.error(`Error fetching stats for app ${appId}:`, err);
                         return {
                             appId,
                             totalDocuments: 0,
-                            totalCollections: 0
+                            totalCollections: 0,
+                            sizeBytes: 0
                         };
                     }
                 });
@@ -77,7 +87,8 @@ async function startServer() {
                 statsArray.forEach(stat => {
                     statsObject[stat.appId] = {
                         totalDocuments: stat.totalDocuments,
-                        totalCollections: stat.totalCollections
+                        totalCollections: stat.totalCollections,
+                        sizeBytes: stat.sizeBytes
                     };
                 });
 
