@@ -535,9 +535,9 @@ exports.getAllAppsWithStatsRPC = async () => {
         // 3. Merge apps with stats
         // Note: Owner info will be enriched by Auth Service when it receives this data
         const enrichedApps = apps.map(app => {
-            const dbStats = waterdbStats[app.appId] || { totalDocuments: 0, totalCollections: 0 };
+            const dbStats = waterdbStats[app.appId] || { totalDocuments: 0, totalCollections: 0, sizeBytes: 0 };
             const stStats = storageStats[app.appId] || { totalFiles: 0, totalSize: 0 };
-            const rtAppStats = rtStats[app.appId] || { totalConnections: 0, totalMessages: 0 };
+            const rtAppStats = rtStats[app.appId] || { totalCollections: 0, totalDocuments: 0, sizeBytes: 0 };
 
             return {
                 ...app.toObject(),
@@ -545,16 +545,16 @@ exports.getAllAppsWithStatsRPC = async () => {
                     database: {
                         documents: dbStats.totalDocuments,
                         collections: dbStats.totalCollections,
-                        sizeBytes: dbStats.totalDocuments * 1024 // Estimate ~1KB per document
+                        sizeBytes: dbStats.sizeBytes || 0
                     },
                     storage: {
                         files: stStats.totalFiles,
                         sizeBytes: stStats.totalSize
                     },
                     realtime: {
-                        connections: rtAppStats.totalConnections,
-                        messages: rtAppStats.totalMessages,
-                        sizeBytes: rtAppStats.totalConnections * 1024 // Estimate ~1KB per connection
+                        collections: rtAppStats.totalCollections,
+                        documents: rtAppStats.totalDocuments,
+                        sizeBytes: rtAppStats.sizeBytes || 0
                     }
                 }
             };
