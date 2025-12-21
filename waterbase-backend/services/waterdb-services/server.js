@@ -48,26 +48,18 @@ async function startServer() {
                     return {};
                 }
 
-                // Get stats for each app
+                // Get stats for each app using the same service function as REST API
+                const waterdbService = require('./src/services/waterdb.service');
+
                 const statsPromises = appIds.map(async (appId) => {
                     try {
-                        const totalDocuments = await Document.countDocuments({ appId });
-                        const collections = await Document.distinct('collection', { appId });
-                        const totalCollections = collections.length;
-
-                        // Calculate storage size
-                        const documents = await Document.find({ appId }).lean();
-                        let totalSize = 0;
-                        for (const doc of documents) {
-                            const jsonSize = JSON.stringify(doc).length;
-                            totalSize += jsonSize;
-                        }
-
+                        // Use the SAME function as REST API endpoint
+                        const stats = await waterdbService.getStats(appId);
                         return {
                             appId,
-                            totalDocuments,
-                            totalCollections,
-                            sizeBytes: totalSize
+                            totalDocuments: stats.totalDocuments,
+                            totalCollections: stats.totalCollections,
+                            sizeBytes: stats.usedBytes
                         };
                     } catch (err) {
                         console.error(`Error fetching stats for app ${appId}:`, err);

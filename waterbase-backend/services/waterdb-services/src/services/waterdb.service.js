@@ -119,7 +119,6 @@ exports.getStorageUsage = async (appId) => {
             { $strLenBytes: '$documentId' },
             { $strLenBytes: '$collection' },
             { $strLenBytes: '$appId' },
-            100 // Overhead for metadata, timestamps, etc.
           ]
         }
       }
