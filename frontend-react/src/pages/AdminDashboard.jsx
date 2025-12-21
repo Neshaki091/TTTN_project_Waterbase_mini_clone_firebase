@@ -33,25 +33,12 @@ const AdminDashboard = () => {
             return;
         }
         loadDashboardStats();
-
-        // Auto-refresh every 10 seconds
-        const intervalId = setInterval(() => {
-            console.log('🔄 Auto-refreshing dashboard stats...');
-            loadDashboardStats();
-        }, 10000); // 10 seconds
-
-        // Cleanup interval on unmount
-        return () => clearInterval(intervalId);
     }, [isAdmin, navigate]);
 
     const loadDashboardStats = async () => {
         try {
             setLoading(true);
             const data = await adminService.getDashboardStats();
-            console.log('📊 Dashboard Stats from API:', data);
-            console.log('💾 totalDbStorage:', data.totalDbStorage);
-            console.log('⚡ totalRtStorage:', data.totalRtStorage);
-            console.log('📁 totalFileStorage:', data.totalFileStorage);
             setStats(data);
         } catch (error) {
             toast.error(error.response?.data?.message || 'Không thể tải thống kê bảng điều khiển');
@@ -81,16 +68,8 @@ const AdminDashboard = () => {
     return (
         <DashboardLayout>
             <div className="mb-8">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold text-white mb-2">Bảng điều khiển Admin</h1>
-                        <p className="text-gray-400">Phân tích và quản lý toàn hệ thống</p>
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-900/30 border border-blue-700 rounded-lg">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                        <span className="text-blue-400 text-sm font-medium">Tự động cập nhật mỗi 10s</span>
-                    </div>
-                </div>
+                <h1 className="text-3xl font-bold text-white mb-2">Bảng điều khiển Admin</h1>
+                <p className="text-gray-400">Phân tích và quản lý toàn hệ thống</p>
             </div>
 
             {/* Tabs */}
