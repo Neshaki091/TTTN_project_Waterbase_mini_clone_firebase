@@ -171,7 +171,7 @@ exports.loginUser = async (req, res) => {
         res.status(200).json({
             message: 'Login successful',
             user: {
-                id: user._id,
+                _id: user._id,
                 email: user.profile.email,
                 username: user.profile.username,
                 role: user.role
