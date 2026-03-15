@@ -10,7 +10,7 @@ const {
     loginUser,
     logoutUser,
     getAppStats
-} = require('../src/user.controller');
+} = require('../src/controller/user.controller');
 
 const express = require('express');
 const router = express.Router();

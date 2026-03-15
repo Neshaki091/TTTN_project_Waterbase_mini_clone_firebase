@@ -1,11 +1,11 @@
-const UserSchema = require('../models/user.model');
+const UserSchema = require('../../models/user.model');
 const bcrypt = require('bcrypt');
 const {
     generateAccessToken,
     generateRefreshToken,
     addUserRefreshToken,
     deleteUserRefreshToken
-} = require('../util/refreshToken');
+} = require('../../util/refreshToken');
 
 // 🧩 Hàm helper lọc dữ liệu an toàn
 function sanitizeUser(user) {

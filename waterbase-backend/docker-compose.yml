@@ -368,6 +368,68 @@ services:
       retries: 5
       start_period: 40s
 
+  # ---------- OLLAMA (Local LLM) ----------
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - waterbase_network
+    mem_limit: 2048m
+    deploy:
+      resources:
+        limits:
+          memory: 2048m
+        reservations:
+          memory: 1024m
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ---------- RAG AI Service (Python/FastAPI) ----------
+
+  rag-ai-service:
+    build:
+      context: .
+      dockerfile: ./services/rag-ai-service/Dockerfile
+    container_name: rag-ai-services
+    ports:
+      - "3007:3007"
+    environment:
+      PORT: 3007
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:1.5b}
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - waterbase_network
+    mem_limit: 300m
+    deploy:
+      resources:
+        limits:
+          memory: 300m
+        reservations:
+          memory: 200m
+    restart: no
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; r=requests.get('http://localhost:3007/health'); exit(0 if r.status_code==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
   # ============================================
   # ========== 3. GATEWAY LAYER ================
   # ============================================
@@ -394,6 +456,8 @@ services:
       analytics-service:
         condition: service_healthy
       app-service:
+        condition: service_healthy
+      rag-ai-service:
         condition: service_healthy
     networks:
       - waterbase_network
@@ -438,6 +502,7 @@ services:
 volumes:
   mongo_data:
   storage_data:
+  ollama_data:
 
 # ============================================
 # =============== NETWORKS ===================
@@ -446,3 +511,4 @@ volumes:
 networks:
   waterbase_network:
     driver: bridge
+

@@ -17,7 +17,7 @@ const {
   forgotPassword,
   changePassword,
   updateProfile
-} = require('../src/owner.controller');
+} = require('../src/controller/owner.controller');
 
 const express = require('express');
 const router = express.Router();
