@@ -450,7 +450,7 @@ const imageUrl = waterbase.storage.getDownloadUrl('file_id_123');
     };
 
     return (
-        <DashboardLayout>
+        <>
             <div className="max-w-7xl mx-auto">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-white mb-2">Hướng Dẫn Sử Dụng SDK</h1>
@@ -519,7 +519,7 @@ const imageUrl = waterbase.storage.getDownloadUrl('file_id_123');
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
+        </>
     );
 };
 

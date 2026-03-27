@@ -83,7 +83,7 @@ const Dashboard = () => {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Ứng dụng của tôi</h1>
@@ -150,9 +150,6 @@ const Dashboard = () => {
         {newAppCredentials ? (
           <div className="space-y-4">
             <div className="bg-yellow-900/20 border border-yellow-700 rounded-lg p-4">
-              <p className="text-yellow-400 text-sm mb-4">
-                ⚠️ Lưu lại thông tin này. Bạn sẽ không thể xem lại API key lần nữa!
-              </p>
 
               <div className="space-y-3">
                 <div>
@@ -250,7 +247,7 @@ const Dashboard = () => {
           </form>
         )}
       </Modal>
-    </DashboardLayout>
+    </>
   );
 };
 

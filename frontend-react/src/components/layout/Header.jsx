@@ -1,11 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { FiShield, FiChevronDown, FiUser, FiLock, FiLogOut } from 'react-icons/fi';
+import { Sparkles } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import Button from '../common/Button';
 import WaterDropLogo from '../common/WaterDropLogo';
 
-const Header = () => {
+const Header = ({ onToggleAI, isAIOpen }) => {
   const { currentUser, logout, isAdmin } = useApp();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -85,6 +86,12 @@ const Header = () => {
                 >
                   Tất cả ứng dụng
                 </Link>
+                <Link
+                  to="/admin/ai"
+                  className="text-sm text-gray-300 hover:text-white transition-colors"
+                >
+                  AI Manager
+                </Link>
               </nav>
             )}
           </div>
@@ -96,6 +103,21 @@ const Header = () => {
                 <span className="text-red-400 text-xs font-medium">Admin</span>
               </div>
             )}
+            
+            {/* AI Toggle Button */}
+            <button
+              onClick={onToggleAI}
+              className={`p-2 rounded-lg transition-all flex items-center space-x-2 ${
+                isAIOpen 
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' 
+                : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+              }`}
+              title="Trợ giúp AI"
+            >
+              <Sparkles size={18} />
+              <span className="text-xs font-medium hidden sm:inline">AI Assistant</span>
+            </button>
+
             {currentUser && (
               <div className="relative" ref={dropdownRef}>
                 <button

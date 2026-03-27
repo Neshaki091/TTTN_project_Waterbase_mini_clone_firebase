@@ -1,6 +1,4 @@
-const waterdbService = require('../services/waterdb.service');
-
-const QUOTA_LIMIT = 100 * 1024 * 1024; // 100MB in bytes
+const { getRabbit } = require('../../shared/rabbitmq/client');
 
 exports.checkQuota = async (req, res, next) => {
     try {
@@ -10,36 +8,58 @@ exports.checkQuota = async (req, res, next) => {
             return res.status(400).json({ message: 'App ID required' });
         }
 
-        // Get current storage usage
-        const { usedBytes } = await waterdbService.getStorageUsage(appId);
+        const rabbitMQ = getRabbit();
+        if (!rabbitMQ.isConnected) {
+            // If messaging is down, we allow the request for better UX, 
+            // but log a warning. Quota will be eventually consistent.
+            console.warn('[QuotaMiddleware] RabbitMQ not connected, skipping quota check.');
+            return next();
+        }
+
+        // Get current storage usage via RPC from App Service
+        const quotaInfo = await rabbitMQ.sendRPC('quota.check', { appId });
+
+        if (quotaInfo.error) {
+            console.warn(`[QuotaMiddleware] Error checking quota for ${appId}:`, quotaInfo.error);
+            return next();
+        }
+
+        const { usage, limit, status } = quotaInfo;
+
+        // Check app status
+        if (status === 'suspended') {
+            return res.status(403).json({ message: 'Application is suspended due to quota or billing issues.' });
+        }
+
+        // Calculate total database usage
+        const usedBytes = (usage.waterdb?.storageSize || 0) + (usage.rtwaterdb?.storageSize || 0);
 
         // Check if quota exceeded
-        if (usedBytes >= QUOTA_LIMIT) {
+        if (usedBytes >= limit) {
             return res.status(413).json({
                 message: 'Storage quota exceeded',
-                quota: QUOTA_LIMIT,
+                quota: limit,
                 used: usedBytes,
-                limit: '100MB'
+                limit: (limit / (1024 * 1024)) + 'MB'
             });
         }
 
-        // Estimate size of incoming document (rough approximation)
-        const estimatedSize = JSON.stringify(req.body).length + 200; // Add overhead
+        // Estimate size of incoming document
+        const estimatedSize = JSON.stringify(req.body).length + 200;
 
-        if (usedBytes + estimatedSize > QUOTA_LIMIT) {
+        if (usedBytes + estimatedSize > limit) {
             return res.status(413).json({
                 message: 'Storage quota would be exceeded by this operation',
-                quota: QUOTA_LIMIT,
+                quota: limit,
                 used: usedBytes,
                 estimated: estimatedSize,
-                limit: '100MB'
+                limit: (limit / (1024 * 1024)) + 'MB'
             });
         }
 
         next();
     } catch (error) {
         console.error('Quota check error:', error);
-        // Don't block on quota check errors, just log and continue
         next();
     }
 };

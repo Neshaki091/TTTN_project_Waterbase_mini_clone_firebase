@@ -1,30 +1,23 @@
 const ownerService = require('../services/owner.service');
-
-// 🧩 Hàm helper để chỉ trả về dữ liệu an toàn
-function sanitizeOwner(owner) {
-    if (!owner) return null;
-    const { _id, profile, apps, role } = owner;
-    console.log("Đăng nhập user", _id, profile, apps, role)
-    return { _id, profile, apps, role };
-}
+const ownerMapper = require('../mappers/owner.mapper');
 
 // 🧠 Lấy tất cả owner (chỉ admin)
 exports.getAllOwners = async (req, res) => {
     try {
         const ownersWithStats = await ownerService.getAllOwners();
-        res.status(200).json(ownersWithStats);
+        res.status(200).json(ownersWithStats); // Stats are already mixed in service for now
     } catch (err) {
         console.error('Error in getAllOwners:', err);
         res.status(500).json({ message: 'Error retrieving owners', error: err.message });
     }
 };
 
-// 🔍 Lấy owner theo ID (admin hoặc chính owner - quyền đã check bằng middleware)
+// 🔍 Lấy owner theo ID
 exports.getOwnerById = async (req, res) => {
     try {
         const owner = await ownerService.getOwnerById(req.params.id);
         if (!owner) return res.status(404).json({ message: 'Owner not found' });
-        res.status(200).json(sanitizeOwner(owner));
+        res.status(200).json(ownerMapper.toDTO(owner));
     } catch (err) {
         res.status(500).json({ message: 'Error retrieving owner', error: err.message });
     }
@@ -34,7 +27,7 @@ exports.getOwnerById = async (req, res) => {
 exports.createOwner = async (req, res) => {
     try {
         const owner = await ownerService.createOwner(req.body);
-        res.status(201).json(sanitizeOwner(owner));
+        res.status(201).json(ownerMapper.toDTO(owner));
     } catch (err) {
         if (err.message === 'Email already registered') {
             return res.status(400).json({ message: err.message });
@@ -43,19 +36,14 @@ exports.createOwner = async (req, res) => {
     }
 };
 
-// 🔐 Tạo admin (dành cho ADMIN_SECRET)
+// 🔐 Tạo admin
 exports.createWaterbaseAdmin = async (req, res) => {
     const { name, email, password, adminSecret } = req.body;
-    console.log("crate new admin: ", name, email, password, adminSecret);
-
     try {
         const admin = await ownerService.createWaterbaseAdmin({ name, email, password }, adminSecret);
-        res.status(201).json(sanitizeOwner(admin));
+        res.status(201).json(ownerMapper.toDTO(admin));
     } catch (err) {
-        if (err.message === 'Invalid admin secret key') {
-            return res.status(403).json({ message: err.message });
-        }
-        if (err.message === 'Email already registered') {
+        if (err.message === 'Invalid admin secret key' || err.message === 'Email already registered') {
             return res.status(400).json({ message: err.message });
         }
         res.status(500).json({ message: 'Error creating admin', error: err.message });
@@ -66,7 +54,7 @@ exports.createWaterbaseAdmin = async (req, res) => {
 exports.updateOwner = async (req, res) => {
     try {
         const updatedOwner = await ownerService.updateOwner(req.params.id, req.body, req.user);
-        res.status(200).json(sanitizeOwner(updatedOwner));
+        res.status(200).json(ownerMapper.toDTO(updatedOwner));
     } catch (err) {
         if (err.message === 'Forbidden') return res.status(403).json({ message: 'Forbidden' });
         if (err.message === 'Owner not found') return res.status(404).json({ message: 'Owner not found' });
@@ -89,7 +77,7 @@ exports.deleteOwner = async (req, res) => {
 exports.updateOwnerApps = async (req, res) => {
     try {
         const updatedOwner = await ownerService.updateOwnerApps(req.params.id, req.body.action, req.body.app, req.user);
-        res.status(200).json(sanitizeOwner(updatedOwner));
+        res.status(200).json(ownerMapper.toDTO(updatedOwner));
     } catch (err) {
         if (err.message === 'Forbidden') return res.status(403).json({ message: 'Forbidden' });
         if (err.message === 'Owner not found') return res.status(404).json({ message: 'Owner not found' });
@@ -103,7 +91,7 @@ exports.loginOwner = async (req, res) => {
     try {
         const { owner, accessToken, refreshToken } = await ownerService.loginOwner(req.body.email, req.body.password);
         res.status(200).json({
-            owner: sanitizeOwner(owner),
+            owner: ownerMapper.toDTO(owner),
             accessToken,
             refreshToken
         });
@@ -140,7 +128,7 @@ exports.getSystemStats = async (req, res) => {
     }
 };
 
-// 📊 Lấy thống kê sử dụng của Owner (Database + Storage)
+// 📊 Lấy thống kê sử dụng của Owner
 exports.getOwnerUsage = async (req, res) => {
     try {
         const usage = await ownerService.getOwnerUsage(req.params.id, req.user, req.headers.authorization);
@@ -152,17 +140,13 @@ exports.getOwnerUsage = async (req, res) => {
     }
 };
 
-// 🔒 Lock/Unlock owner account (Admin only)
+// 🔒 Lock/Unlock owner account
 exports.lockOwner = async (req, res) => {
     try {
         const owner = await ownerService.lockOwner(req.params.id, req.body.locked);
         res.status(200).json({
             message: `Owner account ${req.body.locked ? 'locked' : 'unlocked'} successfully`,
-            owner: {
-                _id: owner._id,
-                email: owner.profile?.email,
-                status: owner.status
-            }
+            owner: ownerMapper.toDTO(owner)
         });
     } catch (error) {
         if (error.message === 'Owner not found') return res.status(404).json({ message: 'Owner not found' });
@@ -171,79 +155,58 @@ exports.lockOwner = async (req, res) => {
     }
 };
 
-// 📊 Get comprehensive dashboard statistics (Admin only)
+// 📊 Dashboard statistics
 exports.getDashboardStats = async (req, res) => {
     try {
         const stats = await ownerService.getDashboardStats();
         res.status(200).json(stats);
     } catch (error) {
-        console.error('Error getting dashboard stats:', error);
         res.status(500).json({ message: 'Error retrieving dashboard statistics', error: error.message });
     }
 };
 
-// 📊 Get all apps with usage stats (Admin only)
+// 📊 All apps with stats
 exports.getAllAppsWithStats = async (req, res) => {
     try {
         const apps = await ownerService.getAllAppsWithStats();
         res.status(200).json(apps);
     } catch (err) {
-        console.error('❌ Error getting all apps with stats via RPC:', err);
         res.status(500).json({ message: 'Error retrieving apps', error: err.message });
     }
 };
 
-// 🔑 Forgot Password - Send temporary password via email
+// 🔑 Forgot Password
 exports.forgotPassword = async (req, res) => {
-    if (!req.body.email) {
-        return res.status(400).json({ message: 'Email is required' });
-    }
-
+    if (!req.body.email) return res.status(400).json({ message: 'Email is required' });
     try {
         const result = await ownerService.forgotPassword(req.body.email);
         res.status(200).json(result);
     } catch (err) {
-        console.error('Error in forgotPassword:', err);
-        res.status(500).json({
-            message: 'Đã xảy ra lỗi khi xử lý yêu cầu. Vui lòng thử lại sau.',
-            error: err.message
-        });
+        res.status(500).json({ message: 'Error processing request', error: err.message });
     }
 };
 
-// 🔐 Change Password - Authenticated user changes their password
+// 🔐 Change Password
 exports.changePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
-    if (!currentPassword || !newPassword) {
-        return res.status(400).json({ message: 'Current password and new password are required' });
-    }
-
+    if (!currentPassword || !newPassword) return res.status(400).json({ message: 'Passwords are required' });
     try {
         await ownerService.changePassword(req.user.id, currentPassword, newPassword);
         res.status(200).json({ message: 'Password changed successfully' });
     } catch (err) {
-        if (err.message === 'New password must be at least 6 characters long') return res.status(400).json({ message: err.message });
-        if (err.message === 'Owner not found') return res.status(404).json({ message: err.message });
-        if (err.message === 'Current password is incorrect') return res.status(401).json({ message: err.message });
-        
-        console.error('Error in changePassword:', err);
         res.status(500).json({ message: 'Error changing password', error: err.message });
     }
 };
 
-// 👤 Update Profile - Update username and other profile info
+// 👤 Update Profile
 exports.updateProfile = async (req, res) => {
     try {
         const owner = await ownerService.updateProfile(req.user.id, req.body.username, req.body.name);
         res.status(200).json({
             message: 'Profile updated successfully',
-            owner: sanitizeOwner(owner)
+            owner: ownerMapper.toDTO(owner)
         });
     } catch (err) {
-        if (err.message === 'At least one field (username or name) is required') return res.status(400).json({ message: err.message });
-        if (err.message === 'Owner not found') return res.status(404).json({ message: err.message });
-
-        console.error('Error in updateProfile:', err);
         res.status(500).json({ message: 'Error updating profile', error: err.message });
     }
 };

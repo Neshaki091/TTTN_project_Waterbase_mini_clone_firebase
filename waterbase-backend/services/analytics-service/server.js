@@ -22,15 +22,7 @@ app.get('/health', (req, res) => {
 });
 
 // Routes
-// Temporarily disabled until controller is properly set up
-// app.use('/analytics', analyticsRoutes);
-app.get('/analytics/system', (req, res) => {
-    res.json({
-        currentSystemStats: { totalOwners: 0, totalApps: 0, totalDatabaseDocuments: 0, totalStorageSize: 0 },
-        systemMetrics: {},
-        timeSeries: []
-    });
-});
+app.use('/analytics', analyticsRoutes);
 
 // MongoDB connection
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/analytics';

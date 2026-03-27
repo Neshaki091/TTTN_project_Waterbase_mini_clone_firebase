@@ -52,26 +52,26 @@ const AppDetail = () => {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <>
         <div className="text-center py-12">
           <p className="text-gray-400">Đang tải ứng dụng...</p>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   if (!app) {
     return (
-      <DashboardLayout>
+      <>
         <div className="text-center py-12">
           <p className="text-gray-400">Không tìm thấy ứng dụng</p>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="mb-6">
         <button
           onClick={() => navigate('/')}
@@ -127,7 +127,7 @@ const AppDetail = () => {
           />
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 };
 

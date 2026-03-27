@@ -53,7 +53,7 @@ const ChangePassword = () => {
     };
 
     return (
-        <DashboardLayout>
+        <>
             <div className="max-w-2xl mx-auto">
                 <div className="mb-6">
                     <h1 className="text-3xl font-bold text-white mb-2">Đổi mật khẩu</h1>
@@ -124,7 +124,7 @@ const ChangePassword = () => {
                     </form>
                 </Card>
             </div>
-        </DashboardLayout>
+        </>
     );
 };
 

@@ -1,12 +1,6 @@
 const waterdbService = require('../services/waterdb.service');
+const waterdbMapper = require('../mappers/waterdb.mapper');
 const { publishEvent } = require('../utils/realtime.client');
-
-const buildResponse = (doc) => ({
-  id: doc.documentId,
-  data: doc.data,
-  createdAt: doc.createdAt,
-  updatedAt: doc.updatedAt,
-});
 
 exports.getCollections = async (req, res) => {
   const collections = await waterdbService.listCollections(req.appId);
@@ -20,7 +14,7 @@ exports.getCollection = async (req, res) => {
     req.query
   );
   res.json({
-    documents: docs.map(buildResponse),
+    documents: waterdbMapper.toDTOList(docs),
   });
 };
 
@@ -30,7 +24,7 @@ exports.getDocument = async (req, res) => {
     req.params.collectionName,
     req.params.documentId
   );
-  res.json(buildResponse(doc));
+  res.json(waterdbMapper.toDTO(doc));
 };
 
 exports.createDocument = async (req, res) => {
@@ -49,7 +43,7 @@ exports.createDocument = async (req, res) => {
     data: doc.data,
   });
 
-  res.status(201).json(buildResponse(doc));
+  res.status(201).json(waterdbMapper.toDTO(doc));
 };
 
 exports.updateDocument = async (req, res) => {
@@ -69,7 +63,7 @@ exports.updateDocument = async (req, res) => {
     data: doc.data,
   });
 
-  res.json(buildResponse(doc));
+  res.json(waterdbMapper.toDTO(doc));
 };
 
 exports.deleteDocument = async (req, res) => {

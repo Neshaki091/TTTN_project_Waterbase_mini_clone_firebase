@@ -8,6 +8,38 @@ const appSchema = new mongoose.Schema({
         unique: true,
         index: true
     },
+    QuotaManager: {
+                rtwaterdb: {
+                    storageSize: {
+                        type: Number,
+                        default: 0,
+                    },
+                    docCount: {
+                        type: Number,
+                        default: 0,
+                    },
+                },
+                storage: {
+                    storageSize: {
+                        type: Number,
+                        default: 0,
+                    },
+                    docCount: {
+                        type: Number,
+                        default: 0,
+                    },
+                },
+                waterdb: {
+                    storageSize: {
+                        type: Number,
+                        default: 0,
+                    },
+                    docCount: {
+                        type: Number,
+                        default: 0,
+                    },
+                },            
+            },
     name: { type: String, required: true },
     description: { type: String, default: '' },
     ownerId: { type: String, required: true, index: true },

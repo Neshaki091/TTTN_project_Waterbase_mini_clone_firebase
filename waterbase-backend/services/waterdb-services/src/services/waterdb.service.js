@@ -1,23 +1,26 @@
 const { nanoid } = require('nanoid');
-const DynamicDocument = require('../models/dynamicDocument.model');
+const waterdbRepository = require('../repositories/waterdb.repository');
+const usageService = require('./usage.service');
 
 const sanitizeCollectionName = (name = '') => name.trim().toLowerCase();
 
 exports.listCollections = async (appId) => {
-  return DynamicDocument.distinct('collection', { appId });
+  return waterdbRepository.findDistinctCollections({ appId });
 };
 
 exports.listDocuments = async (appId, collection, query = {}) => {
   const parsedCollection = sanitizeCollectionName(collection);
   const { limit = 50, orderBy = 'createdAt', direction = 'desc' } = query;
 
-  return DynamicDocument.find({ appId, collection: parsedCollection })
-    .sort({ [orderBy]: direction === 'asc' ? 1 : -1 })
-    .limit(Math.min(Number(limit) || 50, 200));
+  return waterdbRepository.findDocuments(
+    { appId, collection: parsedCollection },
+    { [orderBy]: direction === 'asc' ? 1 : -1 },
+    Math.min(Number(limit) || 50, 200)
+  );
 };
 
 exports.getDocument = async (appId, collection, documentId) => {
-  const doc = await DynamicDocument.findOne({
+  const doc = await waterdbRepository.findOne({
     appId,
     collection: sanitizeCollectionName(collection),
     documentId,
@@ -37,13 +40,25 @@ exports.createDocument = async (appId, collection, payload = {}, user) => {
   const documentId = providedId || nanoid(20);
   const data = explicitData ?? rest;
 
-  const doc = await DynamicDocument.create({
+  const size = usageService.calculateSize(data);
+
+  const doc = await waterdbRepository.create({
     appId,
     collection: sanitizeCollectionName(collection),
     documentId,
     data,
+    UsageService: {
+      storageSize: size,
+      docCount: 1
+    },
     createdBy: user?.id || user?._id || null,
     updatedBy: user?.id || user?._id || null,
+  });
+
+  // Track usage update: +size, +1 doc
+  await usageService.trackUpdate(appId, 'waterdb', {
+    storageDelta: size,
+    docDelta: 1
   });
 
   return doc;
@@ -53,34 +68,45 @@ exports.updateDocument = async (appId, collection, documentId, payload = {}, use
   const { data: explicitData, ...rest } = payload;
   const data = explicitData ?? rest;
 
-  const doc = await DynamicDocument.findOneAndUpdate(
-    {
-      appId,
-      collection: sanitizeCollectionName(collection),
-      documentId,
-    },
-    {
-      data,
-      updatedBy: user?.id || user?._id || null,
-    },
-    { new: true }
-  );
-
-  if (!doc) {
+  const filter = { appId, collection: sanitizeCollectionName(collection), documentId };
+  const oldDoc = await waterdbRepository.findOne(filter);
+  if (!oldDoc) {
     const error = new Error('Document not found');
     error.status = 404;
     throw error;
+  }
+
+  const newSize = usageService.calculateSize(data);
+  const oldSize = oldDoc.UsageService?.storageSize || 0;
+  const storageDelta = newSize - oldSize;
+
+  const doc = await waterdbRepository.update(
+    filter,
+    {
+      data,
+      'UsageService.storageSize': newSize,
+      updatedBy: user?.id || user?._id || null,
+    }
+  );
+
+  // Track usage update: delta size, 0 doc change
+  if (storageDelta !== 0) {
+    await usageService.trackUpdate(appId, 'waterdb', {
+      storageDelta,
+      docDelta: 0
+    });
   }
 
   return doc;
 };
 
 exports.deleteDocument = async (appId, collection, documentId) => {
-  const doc = await DynamicDocument.findOneAndDelete({
+  const filter = {
     appId,
     collection: sanitizeCollectionName(collection),
     documentId,
-  });
+  };
+  const doc = await waterdbRepository.deleteOne(filter);
 
   if (!doc) {
     const error = new Error('Document not found');
@@ -88,12 +114,19 @@ exports.deleteDocument = async (appId, collection, documentId) => {
     throw error;
   }
 
+  // Track usage update: -size, -1 doc
+  const size = doc.UsageService?.storageSize || 0;
+  await usageService.trackUpdate(appId, 'waterdb', {
+    storageDelta: -size,
+    docDelta: -1
+  });
+
   return doc;
 };
 
 exports.getStats = async (appId) => {
-  const totalCollections = (await DynamicDocument.distinct('collection', { appId })).length;
-  const totalDocuments = await DynamicDocument.countDocuments({ appId });
+  const totalCollections = (await waterdbRepository.findDistinctCollections({ appId })).length;
+  const totalDocuments = await waterdbRepository.countDocuments({ appId });
 
   // Calculate storage usage
   const storageUsage = await exports.getStorageUsage(appId);
@@ -107,12 +140,10 @@ exports.getStats = async (appId) => {
 
 exports.getStorageUsage = async (appId) => {
   // Aggregate to calculate approximate storage size
-  const result = await DynamicDocument.aggregate([
+  const result = await waterdbRepository.aggregate([
     { $match: { appId } },
     {
       $project: {
-        // Use $bsonSize to get accurate BSON size of the data object
-        // Handle null/undefined data with $ifNull
         size: {
           $add: [
             { $bsonSize: { $ifNull: ['$data', {}] } },
@@ -137,16 +168,16 @@ exports.getStorageUsage = async (appId) => {
 };
 
 exports.getSystemStats = async () => {
-  const totalCollections = (await DynamicDocument.distinct('collection')).length;
-  const totalDocuments = await DynamicDocument.countDocuments();
+  const totalCollections = (await waterdbRepository.findDistinctCollections({})).length;
+  const totalDocuments = await waterdbRepository.countDocuments({});
   return { totalCollections, totalDocuments };
 };
 
 exports.getAggregateStats = async (appIds) => {
   if (!appIds || appIds.length === 0) return { totalCollections: 0, totalDocuments: 0 };
 
-  const totalCollections = (await DynamicDocument.distinct('collection', { appId: { $in: appIds } })).length;
-  const totalDocuments = await DynamicDocument.countDocuments({ appId: { $in: appIds } });
+  const totalCollections = (await waterdbRepository.findDistinctCollections({ appId: { $in: appIds } })).length;
+  const totalDocuments = await waterdbRepository.countDocuments({ appId: { $in: appIds } });
 
   return { totalCollections, totalDocuments };
 };
@@ -154,7 +185,7 @@ exports.getAggregateStats = async (appIds) => {
 exports.getStatsPerApp = async (appIds) => {
   if (!appIds || appIds.length === 0) return {};
 
-  const stats = await DynamicDocument.aggregate([
+  const stats = await waterdbRepository.aggregate([
     { $match: { appId: { $in: appIds } } },
     {
       $group: {

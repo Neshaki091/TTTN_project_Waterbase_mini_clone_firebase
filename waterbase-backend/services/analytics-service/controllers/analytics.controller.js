@@ -1,28 +1,10 @@
-// Analytics Controller
-// Provides analytics data for system, owners, and apps
+const analyticsService = require('../services/analytics.service');
 
 // Get system-wide analytics (Admin only)
 exports.getSystemAnalytics = async (req, res) => {
     try {
-        // Return basic system stats
-        // In production, this would query aggregated analytics data
-        res.status(200).json({
-            currentSystemStats: {
-                totalOwners: 0,
-                totalApps: 0,
-                totalDatabaseDocuments: 0,
-                totalStorageSize: 0,
-                perAppStats: {
-                    database: {},
-                    storage: {}
-                }
-            },
-            systemMetrics: {
-                avgResponseTime: 0,
-                totalRequests: 0
-            },
-            timeSeries: []
-        });
+        const stats = await analyticsService.getSystemAnalytics();
+        res.status(200).json(stats);
     } catch (error) {
         console.error('Error getting system analytics:', error);
         res.status(500).json({ message: 'Error retrieving system analytics', error: error.message });
@@ -33,14 +15,8 @@ exports.getSystemAnalytics = async (req, res) => {
 exports.getOwnerAnalytics = async (req, res) => {
     try {
         const { ownerId } = req.params;
-
-        res.status(200).json({
-            ownerId,
-            totalApps: 0,
-            totalStorage: 0,
-            totalRequests: 0,
-            timeSeries: []
-        });
+        const stats = await analyticsService.getOwnerAnalytics(ownerId);
+        res.status(200).json(stats);
     } catch (error) {
         console.error('Error getting owner analytics:', error);
         res.status(500).json({ message: 'Error retrieving owner analytics', error: error.message });
@@ -51,14 +27,8 @@ exports.getOwnerAnalytics = async (req, res) => {
 exports.getAppAnalytics = async (req, res) => {
     try {
         const { appId } = req.params;
-
-        res.status(200).json({
-            appId,
-            requests: 0,
-            storage: 0,
-            users: 0,
-            timeSeries: []
-        });
+        const stats = await analyticsService.getAppAnalytics(appId);
+        res.status(200).json(stats);
     } catch (error) {
         console.error('Error getting app analytics:', error);
         res.status(500).json({ message: 'Error retrieving app analytics', error: error.message });
@@ -68,12 +38,8 @@ exports.getAppAnalytics = async (req, res) => {
 // Track analytics event
 exports.trackEvent = async (req, res) => {
     try {
-        const eventData = req.body;
-
-        // In production, this would save to analytics database
-        console.log('Analytics event tracked:', eventData);
-
-        res.status(201).json({ message: 'Event tracked successfully' });
+        const event = await analyticsService.processEvent(req.body);
+        res.status(201).json({ message: 'Event tracked successfully', eventId: event._id });
     } catch (error) {
         console.error('Error tracking event:', error);
         res.status(500).json({ message: 'Error tracking event', error: error.message });

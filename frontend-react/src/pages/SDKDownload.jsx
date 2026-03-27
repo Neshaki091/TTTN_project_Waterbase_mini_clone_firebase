@@ -31,7 +31,7 @@ const SDKDownload = () => {
     };
 
     return (
-        <DashboardLayout>
+        <>
             <div className="max-w-4xl mx-auto">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-white mb-2">Tải xuống SDK</h1>
@@ -126,7 +126,7 @@ export default waterbase;`}
                     </div>
                 </Card>
             </div>
-        </DashboardLayout>
+        </>
     );
 };
 

@@ -1,4 +1,5 @@
 const rtwaterdbService = require('../services/rtwaterdb.service');
+const dynamicDocumentMapper = require('../mappers/dynamicDocument.mapper');
 
 module.exports = (io) => {
     const emitUpdate = (appId, collection, type, data) => {
@@ -8,7 +9,7 @@ module.exports = (io) => {
             appId,
             collection,
             type, // 'create', 'update', 'delete'
-            data
+            data: dynamicDocumentMapper.toDTO(data)
         });
     };
 
@@ -26,7 +27,7 @@ module.exports = (io) => {
             try {
                 const { collectionName } = req.params;
                 const documents = await rtwaterdbService.listDocuments(req.appId, collectionName, req.query);
-                res.json({ documents });
+                res.json({ documents: dynamicDocumentMapper.toDTOList(documents) });
             } catch (error) {
                 res.status(500).json({ message: error.message });
             }
@@ -35,9 +36,9 @@ module.exports = (io) => {
         getDocument: async (req, res) => {
             try {
                 const { collectionName, documentId, docId } = req.params;
-                const id = documentId || docId; // Support both naming conventions
+                const id = documentId || docId;
                 const document = await rtwaterdbService.getDocument(req.appId, collectionName, id);
-                res.json(document);
+                res.json(dynamicDocumentMapper.toDTO(document));
             } catch (error) {
                 res.status(error.status || 500).json({ message: error.message });
             }
@@ -50,7 +51,7 @@ module.exports = (io) => {
 
                 emitUpdate(req.appId, collectionName, 'create', document);
 
-                res.status(201).json(document);
+                res.status(201).json(dynamicDocumentMapper.toDTO(document));
             } catch (error) {
                 res.status(500).json({ message: error.message });
             }
@@ -59,12 +60,12 @@ module.exports = (io) => {
         updateDocument: async (req, res) => {
             try {
                 const { collectionName, documentId, docId } = req.params;
-                const id = documentId || docId; // Support both naming conventions
+                const id = documentId || docId;
                 const document = await rtwaterdbService.updateDocument(req.appId, collectionName, id, req.body, req.user);
 
                 emitUpdate(req.appId, collectionName, 'update', document);
 
-                res.json(document);
+                res.json(dynamicDocumentMapper.toDTO(document));
             } catch (error) {
                 res.status(error.status || 500).json({ message: error.message });
             }
@@ -73,7 +74,7 @@ module.exports = (io) => {
         deleteDocument: async (req, res) => {
             try {
                 const { collectionName, documentId, docId } = req.params;
-                const id = documentId || docId; // Support both naming conventions
+                const id = documentId || docId;
                 const document = await rtwaterdbService.deleteDocument(req.appId, collectionName, id);
 
                 emitUpdate(req.appId, collectionName, 'delete', { documentId: id });

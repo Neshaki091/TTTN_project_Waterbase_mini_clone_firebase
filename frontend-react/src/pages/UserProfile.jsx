@@ -48,7 +48,7 @@ const UserProfile = () => {
     };
 
     return (
-        <DashboardLayout>
+        <>
             <div className="max-w-2xl mx-auto">
                 <div className="mb-6">
                     <h1 className="text-3xl font-bold text-white mb-2">Thông tin cá nhân</h1>
@@ -120,7 +120,7 @@ const UserProfile = () => {
                     </form>
                 </Card>
             </div>
-        </DashboardLayout>
+        </>
     );
 };
 

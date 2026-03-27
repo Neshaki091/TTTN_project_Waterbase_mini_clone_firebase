@@ -7,6 +7,12 @@ dotenv.config();
 const app = express();
 
 app.use(express.json());
+
+// Public health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', service: 'rule-service' });
+});
+
 app.use((req, res, next) => {
     console.log(`📡 [RULE ENGINE] Request: ${req.method} ${req.url}`);
     next();

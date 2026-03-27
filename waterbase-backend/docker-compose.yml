@@ -89,6 +89,12 @@ services:
     environment:
       MONGO_URI: ${MONGO_URI_AUTH:-mongodb://mongo:27017/auth_service}
       JWT_SECRET: ${JWT_SECRET}
+      ADMIN_SECRET: ${ADMIN_SECRET}
+      EMAIL_HOST: ${EMAIL_HOST}
+      EMAIL_PORT: ${EMAIL_PORT}
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD}
+      EMAIL_FROM: ${EMAIL_FROM}
       RABBITMQ_URL: ${RABBITMQ_URL}
       NODE_OPTIONS: "--max-old-space-size=128"
     volumes:
@@ -410,6 +416,12 @@ services:
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
       OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:1.5b}
+      VAULT_DIR: /app/knowlegde-vault
+    volumes:
+      - ./services/rag-ai-service:/app
+      - ./services/shared:/app/shared
+      - /app/node_modules
+      - ./services/rag-ai-service/knowlegde-vault:/app/knowlegde-vault
     depends_on:
       ollama:
         condition: service_healthy
@@ -424,7 +436,7 @@ services:
           memory: 200m
     restart: no
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; r=requests.get('http://localhost:3007/health'); exit(0 if r.status_code==200 else 1)"]
+      test: ["CMD", "sh", "-c", "ps aux | grep 'node.*src/index.js' | grep -v grep || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5

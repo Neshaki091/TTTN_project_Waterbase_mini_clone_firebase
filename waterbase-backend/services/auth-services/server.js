@@ -45,41 +45,10 @@ async function startServer() {
             console.log('✅ RabbitMQ connected successfully');
 
             // Setup RPC Handler for Stats
+            const rpcService = require('./src/services/rpc.service');
             await rabbitMQ.respondRPC('auth.stats.request', async (data) => {
                 console.log('📥 Received stats request via RPC');
-                try {
-                    const OwnerSchema = require('./src/models/owner.model');
-                    const UserSchema = require('./src/models/user.model');
-
-                    const totalOwners = await OwnerSchema.countDocuments({ role: 'owner' });
-                    const totalUsers = await UserSchema.countDocuments();
-
-                    // Get all apps from all owners
-                    const owners = await OwnerSchema.find({ role: 'owner' }, 'apps');
-                    const allAppIds = [];
-                    let totalApps = 0;
-
-                    owners.forEach(owner => {
-                        if (owner.apps && Array.isArray(owner.apps)) {
-                            owner.apps.forEach(app => {
-                                if (app.appId) {
-                                    allAppIds.push(app.appId);
-                                    totalApps++;
-                                }
-                            });
-                        }
-                    });
-
-                    return {
-                        totalOwners,
-                        totalUsers,
-                        totalApps,
-                        allAppIds
-                    };
-                } catch (err) {
-                    console.error('Error fetching auth stats:', err);
-                    return { totalOwners: 0, totalUsers: 0, totalApps: 0, allAppIds: [] };
-                }
+                return await rpcService.getAuthStats();
             });
 
             break; // Success, exit retry loop

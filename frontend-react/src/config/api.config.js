@@ -52,6 +52,12 @@ export const API_ENDPOINTS = {
     SOCKET_URL: `${API_ORIGIN}`,
     PATH: '/api/v1/rtwaterdb/socket.io',
   },
+  AI: {
+    BASE: `${API_BASE}/api/v1/ai`,
+    ASK: `${API_BASE}/api/v1/ai/ask`,
+    HEALTH: `${API_BASE}/api/v1/ai/health`,
+    ADMIN: `${API_BASE}/api/v1/ai/admin`,
+  },
 };
 
 export default API_ENDPOINTS;

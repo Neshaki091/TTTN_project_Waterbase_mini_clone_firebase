@@ -1,25 +1,5 @@
-const UserSchema = require('../../models/user.model');
-const bcrypt = require('bcrypt');
-const {
-    generateAccessToken,
-    generateRefreshToken,
-    addUserRefreshToken,
-    deleteUserRefreshToken
-} = require('../../util/refreshToken');
-
-// 🧩 Hàm helper lọc dữ liệu an toàn
-function sanitizeUser(user) {
-    if (!user) return null;
-    const { _id, profile, appId, isActive } = user;
-    return {
-        _id,
-        email: profile.email,
-        username: profile.username,
-        appId,
-        isActive,
-        createdAt: profile.createdAt
-    };
-}
+const userService = require('../services/user.service');
+const userMapper = require('../mappers/user.mapper');
 
 // 🧠 Lấy tất cả user trong app
 exports.getAllUsersInApp = async (req, res) => {
@@ -27,114 +7,67 @@ exports.getAllUsersInApp = async (req, res) => {
     if (!appId) return res.status(400).json({ message: 'x-app-id header required' });
 
     try {
-        const users = await UserSchema.find({ appId }).select('profile appId isActive');
-        res.status(200).json(users.map(u => sanitizeUser(u)));
+        const users = await userService.getAllUsersInApp(appId);
+        res.status(200).json(userMapper.toDTOList(users));
     } catch (err) {
-        res.status(500).json({ message: 'Error retrieving users', error: err });
+        res.status(500).json({ message: 'Error retrieving users', error: err.message });
     }
 };
 
 // 🔍 Lấy user theo ID
 exports.getUserById = async (req, res) => {
-    const userId = req.params.id;
-
     try {
-        const user = await UserSchema.findById(userId).select('profile appId isActive');
-        if (!user) return res.status(404).json({ message: 'User not found' });
-
-        // Owner chỉ được user cùng app
-        if (req.user.role === 'owner' && !req.user.apps.map(a => a.appId).includes(user.appId)) {
-            return res.status(403).json({ message: 'Forbidden' });
-        }
-
-        res.status(200).json(sanitizeUser(user));
+        const user = await userService.getUserById(req.params.id, req.user);
+        res.status(200).json(userMapper.toDTO(user));
     } catch (err) {
-        res.status(500).json({ message: 'Error retrieving user', error: err });
+        if (err.message === 'User not found') return res.status(404).json({ message: 'User not found' });
+        if (err.message === 'Forbidden') return res.status(403).json({ message: 'Forbidden' });
+        res.status(500).json({ message: 'Error retrieving user', error: err.message });
     }
 };
 
 // 🧱 Tạo user
 exports.createUser = async (req, res) => {
-    const { email, password, username, role = 'user' } = req.body;
+    const { email, password } = req.body;
     const appId = req.headers['x-app-id'];
     if (!appId) return res.status(400).json({ message: 'x-app-id header required' });
     if (!email || !password) return res.status(400).json({ message: 'Email and password required' });
 
     try {
-        const exists = await UserSchema.findOne({ "profile.email": email, appId });
-        if (exists) return res.status(400).json({ message: 'User already exists in this app' });
+        const { user, accessToken, refreshToken } = await userService.createUser(appId, req.body);
 
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new UserSchema({
-            profile: { email, username },
-            password: hashedPassword,
-            appId,
-            role
-        });
-
-        await user.save();
-
-        // Generate tokens like in loginUser
-        const accessToken = generateAccessToken({
-            id: user._id,
-            email: user.profile.email,
-            role: user.role,
-            appId: user.appId
-        });
-        const refreshToken = generateRefreshToken(user._id);
-        await addUserRefreshToken(user._id, refreshToken, accessToken);
-
-        // ✅ Firebase-style: Trả refresh token trong response body
         res.status(201).json({
             message: 'User created successfully',
-            user: {
-                _id: user._id,
-                email: user.profile.email,
-                username: user.profile.username,
-                role: user.role
-            },
+            user: userMapper.toDTO(user),
             accessToken,
-            refreshToken  // ← Trả về
+            refreshToken
         });
     } catch (err) {
+        if (err.message === 'User already exists in this app') return res.status(400).json({ message: err.message });
         res.status(500).json({ message: 'Error creating user', error: err.message });
     }
 };
 
 // 📝 Cập nhật user
 exports.updateUser = async (req, res) => {
-    const userId = req.params.id;
-    const { username, email } = req.body;
-
     try {
-        const user = await UserSchema.findById(userId);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-
-        if (req.user.role === 'owner' && !req.user.apps.map(a => a.appId).includes(user.appId)) {
-            return res.status(403).json({ message: 'Cannot update user in this app' });
-        }
-
-        if (username) user.profile.username = username;
-        if (email) user.profile.email = email;
-        await user.save();
-
-        res.status(200).json(sanitizeUser(user));
+        const user = await userService.updateUser(req.params.id, req.body, req.user);
+        res.status(200).json(userMapper.toDTO(user));
     } catch (err) {
-        res.status(500).json({ message: 'Error updating user', error: err });
+        if (err.message === 'User not found') return res.status(404).json({ message: 'User not found' });
+        if (err.message === 'Cannot update user in this app') return res.status(403).json({ message: err.message });
+        res.status(500).json({ message: 'Error updating user', error: err.message });
     }
 };
 
 // 🗑️ Xóa user
 exports.deleteUser = async (req, res) => {
-    const userId = req.params.id;
-
     try {
-        const user = await UserSchema.findById(userId);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        await user.deleteOne();
+        await userService.deleteUser(req.params.id);
         res.status(200).json({ message: 'User deleted successfully' });
     } catch (err) {
-        res.status(500).json({ message: 'Error deleting user', error: err });
+        if (err.message === 'User not found') return res.status(404).json({ message: 'User not found' });
+        res.status(500).json({ message: 'Error deleting user', error: err.message });
     }
 };
 
@@ -145,41 +78,17 @@ exports.loginUser = async (req, res) => {
     if (!appId) return res.status(400).json({ message: 'x-app-id header required' });
 
     try {
-        const user = await UserSchema.findOne({ "profile.email": email, appId });
-        if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+        const { user, accessToken, refreshToken } = await userService.loginUser(appId, email, password);
 
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
-
-        // Check if user account is locked
-        if (!user.isActive) {
-            return res.status(403).json({ message: 'Account is locked' });
-        }
-
-
-        // CRITICAL: Include appId and role in JWT token
-        const accessToken = generateAccessToken({
-            id: user._id,
-            email: user.profile.email,
-            role: user.role,
-            appId: user.appId
-        });
-        const refreshToken = generateRefreshToken(user._id);
-        await addUserRefreshToken(user._id, refreshToken, accessToken);
-
-        // ✅ Firebase-style: Trả refresh token trong response body
         res.status(200).json({
             message: 'Login successful',
-            user: {
-                _id: user._id,
-                email: user.profile.email,
-                username: user.profile.username,
-                role: user.role
-            },
+            user: userMapper.toDTO(user),
             accessToken,
-            refreshToken  // ← Trả về
+            refreshToken
         });
     } catch (err) {
+        if (err.message === 'Invalid credentials') return res.status(401).json({ message: err.message });
+        if (err.message === 'Account is locked') return res.status(403).json({ message: err.message });
         res.status(500).json({ message: 'Error during login', error: err.message });
     }
 };
@@ -193,69 +102,51 @@ exports.logoutUser = async (req, res) => {
     const accessToken = authHeader.split(' ')[1];
 
     try {
-        await deleteUserRefreshToken(req.user.id, accessToken);
-
+        await userService.logoutUser(req.user.id, accessToken);
         res.status(200).json({ message: 'Logout successful' });
     } catch (err) {
-        res.status(500).json({ message: 'Error during logout', error: err });
+        res.status(500).json({ message: 'Error during logout', error: err.message });
     }
 };
 
 // 🔄 Change password
 exports.changePassword = async (req, res) => {
-    const userId = req.params.id;
     const { oldPassword, newPassword } = req.body;
 
     try {
-        const user = await UserSchema.findById(userId);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-
-        const isMatch = await bcrypt.compare(oldPassword, user.password);
-        if (!isMatch) return res.status(401).json({ message: 'Invalid old password' });
-
-        user.password = await bcrypt.hash(newPassword, 10);
-        await user.save();
+        await userService.changePassword(req.params.id, oldPassword, newPassword);
         res.status(200).json({ message: 'Password changed successfully' });
     } catch (err) {
-        res.status(500).json({ message: 'Error changing password', error: err });
+        if (err.message === 'User not found') return res.status(404).json({ message: 'User not found' });
+        if (err.message === 'Invalid old password') return res.status(401).json({ message: 'Invalid old password' });
+        res.status(500).json({ message: 'Error changing password', error: err.message });
     }
 };
 
 // 🔒 Khóa/Mở khóa user
 exports.toggleUserStatus = async (req, res) => {
-    const userId = req.params.id;
-    const { isActive } = req.body;
-
     try {
-        const user = await UserSchema.findById(userId);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-
-        // Owner chỉ được toggle user cùng app
-        if (req.user.role === 'owner' && !req.user.apps.map(a => a.appId).includes(user.appId)) {
-            return res.status(403).json({ message: 'Forbidden' });
-        }
-
-        user.isActive = isActive;
-        await user.save();
-
+        const user = await userService.toggleUserStatus(req.params.id, req.body.isActive, req.user);
         res.status(200).json({
-            message: `User ${isActive ? 'activated' : 'deactivated'} successfully`,
-            user: sanitizeUser(user)
+            message: `User ${req.body.isActive ? 'activated' : 'deactivated'} successfully`,
+            user: userMapper.toDTO(user)
         });
     } catch (err) {
-        res.status(500).json({ message: 'Error updating user status', error: err });
+        if (err.message === 'User not found') return res.status(404).json({ message: 'User not found' });
+        if (err.message === 'Forbidden') return res.status(403).json({ message: 'Forbidden' });
+        res.status(500).json({ message: 'Error updating user status', error: err.message });
     }
 };
 
-// 📊 Lấy thống kê user trong app
+// 166: // 📊 Lấy thống kê user trong app
 exports.getAppStats = async (req, res) => {
     const appId = req.headers['x-app-id'];
     if (!appId) return res.status(400).json({ message: 'x-app-id header required' });
 
     try {
-        const totalUsers = await UserSchema.countDocuments({ appId });
-        res.status(200).json({ totalUsers });
+        const stats = await userService.getAppStats(appId);
+        res.status(200).json(stats);
     } catch (err) {
-        res.status(500).json({ message: 'Error retrieving user stats', error: err });
+        res.status(500).json({ message: 'Error retrieving user stats', error: err.message });
     }
 };

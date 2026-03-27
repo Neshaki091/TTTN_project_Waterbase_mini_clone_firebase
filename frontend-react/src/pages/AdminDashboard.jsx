@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FiUsers, FiPackage, FiDatabase, FiHardDrive, FiTrendingUp } from 'react-icons/fi';
+import { FiUsers, FiPackage, FiDatabase, FiHardDrive, FiTrendingUp, FiCpu, FiActivity, FiActivity as FiStatus, FiCheckCircle, FiXCircle, FiAlertCircle, FiRefreshCcw } from 'react-icons/fi';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import adminService from '../services/admin.service';
 import { useApp } from '../context/AppContext';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import Card from '../components/common/Card';
+import API_ENDPOINTS from '../config/api.config';
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
-    const { isAdmin } = useApp();
+    const { isAdmin, loading: appLoading } = useApp();
     const [activeTab, setActiveTab] = useState('system'); // 'system' or 'owners'
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -27,13 +28,37 @@ const AdminDashboard = () => {
         trendsData: []
     });
 
+    const [systemStatus, setSystemStatus] = useState(null);
+    const [systemLoading, setSystemLoading] = useState(true);
+
     useEffect(() => {
+        if (appLoading) return;
         if (!isAdmin) {
             navigate('/');
             return;
         }
         loadDashboardStats();
-    }, [isAdmin, navigate]);
+        loadSystemStatus();
+        
+        // Refresh system status every 30 seconds
+        const timer = setInterval(() => loadSystemStatus(true), 30000);
+        return () => clearInterval(timer);
+    }, [isAdmin, navigate, appLoading]);
+
+    const loadSystemStatus = async (isSilent = false) => {
+        try {
+            if (!isSilent) setSystemLoading(true);
+            const response = await fetch(API_ENDPOINTS.AI.ADMIN + '/system/status');
+            if (response.ok) {
+                const data = await response.json();
+                setSystemStatus(data);
+            }
+        } catch (error) {
+            console.error('Failed to load system status', error);
+        } finally {
+            if (!isSilent) setSystemLoading(false);
+        }
+    };
 
     const loadDashboardStats = async () => {
         try {
@@ -57,16 +82,16 @@ const AdminDashboard = () => {
 
     if (loading) {
         return (
-            <DashboardLayout>
+            <>
                 <div className="text-center py-12">
                     <p className="text-gray-400">Đang tải bảng điều khiển...</p>
                 </div>
-            </DashboardLayout>
+            </>
         );
     }
 
     return (
-        <DashboardLayout>
+        <>
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-white mb-2">Bảng điều khiển Admin</h1>
                 <p className="text-gray-400">Phân tích và quản lý toàn hệ thống</p>
@@ -97,6 +122,162 @@ const AdminDashboard = () => {
             {/* System Overview Tab */}
             {activeTab === 'system' && (
                 <div className="space-y-6">
+                    {/* Infrastructure & Hardware Stats */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <Card className="p-6 border-t-2 border-blue-500 bg-gray-900/40">
+                            <div className="flex items-center justify-between mb-2">
+                                <h4 className="text-gray-400 text-sm font-medium uppercase tracking-wider">CPU</h4>
+                                <FiCpu className="text-blue-400" size={20} />
+                            </div>
+                            <div className="flex items-baseline space-x-2">
+                                <span className="text-2xl font-bold text-white">
+                                    {systemLoading ? '...' : `${systemStatus?.cpu_percent}%`}
+                                </span>
+                            </div>
+                            <div className="mt-2 w-full bg-gray-800 rounded-full h-1.5">
+                                <div 
+                                    className="bg-blue-500 h-1.5 rounded-full transition-all duration-1000" 
+                                    style={{ width: `${systemStatus?.cpu_percent || 0}%` }}
+                                ></div>
+                            </div>
+                        </Card>
+
+                        <Card className="p-6 border-t-2 border-green-500 bg-gray-900/40">
+                            <div className="flex items-center justify-between mb-2">
+                                <h4 className="text-gray-400 text-sm font-medium uppercase tracking-wider">RAM</h4>
+                                <FiActivity className="text-green-400" size={20} />
+                            </div>
+                            <div className="flex items-baseline space-x-2">
+                                <span className="text-2xl font-bold text-white">
+                                    {systemLoading ? '...' : `${systemStatus?.ram_percent}%`}
+                                </span>
+                                <span className="text-gray-500 text-xs">
+                                    {systemStatus ? `(${systemStatus.ram_used_gb}G/${systemStatus.ram_total_gb}G)` : ''}
+                                </span>
+                            </div>
+                            <div className="mt-2 w-full bg-gray-800 rounded-full h-1.5">
+                                <div 
+                                    className="bg-green-500 h-1.5 rounded-full transition-all duration-1000" 
+                                    style={{ width: `${systemStatus?.ram_percent || 0}%` }}
+                                ></div>
+                            </div>
+                        </Card>
+
+                        <Card className="p-6 border-t-2 border-orange-500 bg-gray-900/40">
+                            <div className="flex items-center justify-between mb-2">
+                                <h4 className="text-gray-400 text-sm font-medium uppercase tracking-wider">Disk</h4>
+                                <FiHardDrive className="text-orange-400" size={20} />
+                            </div>
+                            <div className="flex items-baseline space-x-2">
+                                <span className="text-2xl font-bold text-white">
+                                    {systemLoading ? '...' : `${systemStatus?.disk_percent}%`}
+                                </span>
+                                <span className="text-gray-500 text-xs">
+                                    {systemStatus ? `${systemStatus.disk_used_gb}G sử dụng` : ''}
+                                </span>
+                            </div>
+                        </Card>
+
+                        <Card className="p-6 border-t-2 border-red-500 bg-gray-900/40">
+                            <div className="flex items-center justify-between mb-2">
+                                <h4 className="text-gray-400 text-sm font-medium uppercase tracking-wider">Temp</h4>
+                                <span className="text-red-400 font-bold">°C</span>
+                            </div>
+                            <div className="flex items-baseline space-x-2">
+                                <span className="text-2xl font-bold text-white">
+                                    {systemLoading ? '...' : systemStatus?.temperature}
+                                </span>
+                                <span className="text-gray-500 text-xs">Coretemp</span>
+                            </div>
+                        </Card>
+                    </div>
+
+                    {/* Microservices Health */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <Card className="lg:col-span-2 p-6 bg-gray-900/40 border-gray-800">
+                            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4 flex items-center">
+                                <FiStatus className="mr-2 text-blue-400" />
+                                Trạng thái dịch vụ (Microservices)
+                            </h3>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                {!systemStatus ? (
+                                    <p className="text-gray-500 text-xs italic col-span-full">Đang kết nối agent giám sát...</p>
+                                ) : (
+                                    systemStatus.services?.map(service => (
+                                        <div key={service.name} className="flex items-center space-x-2 p-2 rounded bg-gray-800/50 border border-gray-700">
+                                            {service.status === 'online' ? (
+                                                <FiCheckCircle className="text-green-500 flex-shrink-0" size={14} />
+                                            ) : (
+                                                <FiXCircle className="text-red-500 flex-shrink-0" size={14} />
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-medium text-gray-200 truncate">{service.name}</p>
+                                                <p className={`text-[10px] uppercase ${service.status === 'online' ? 'text-green-500/70' : 'text-red-500/70'}`}>
+                                                    {service.status === 'online' ? 'Online' : 'Offline'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </Card>
+
+                        {/* AI Embedding & Knowledge Status */}
+                        <Card className="p-6 bg-gray-900/40 border-gray-800 flex flex-col">
+                            <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-4 flex items-center justify-between">
+                                <div className="flex items-center">
+                                    <FiDatabase className="mr-2 text-purple-400" />
+                                    Knowledge Vault
+                                </div>
+                                {systemStatus?.embedding_status?.running && (
+                                    <div className="flex items-center text-[10px] text-purple-400 font-bold animate-pulse">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-purple-400 mr-1.5"></div>
+                                        PROCESSING
+                                    </div>
+                                )}
+                            </h3>
+                            
+                            <div className="flex-1 space-y-4">
+                                <div className="p-3 rounded bg-purple-500/10 border border-purple-500/20">
+                                    <p className="text-xs text-gray-400 mb-1">Trạng thái Embedding:</p>
+                                    <p className="text-xs font-medium text-white">
+                                        {systemStatus?.embedding_status?.running 
+                                            ? systemStatus.embedding_status.progress 
+                                            : (systemStatus?.embedding_status?.last_result || 'Sẵn sàng')}
+                                    </p>
+                                    {systemStatus?.embedding_status?.running && (
+                                        <div className="mt-2 w-full bg-gray-800 rounded-full h-1 overflow-hidden">
+                                            <div className="bg-purple-500 h-full w-2/3 animate-[shimmer_2s_infinite] origin-left"></div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <button 
+                                    onClick={async () => {
+                                        try {
+                                            const resp = await fetch(API_ENDPOINTS.AI.ADMIN + '/reload', { method: 'POST' });
+                                            if (resp.ok) toast.success('Đã bắt đầu nạp lại dữ liệu!');
+                                            loadSystemStatus();
+                                        } catch (e) {
+                                            toast.error('Không thể bắt đầu reload');
+                                        }
+                                    }}
+                                    disabled={systemStatus?.embedding_status?.running}
+                                    className={`w-full py-2 rounded text-xs font-medium flex items-center justify-center transition-all ${
+                                        systemStatus?.embedding_status?.running
+                                        ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                                        : 'bg-purple-600 hover:bg-purple-500 text-white'
+                                    }`}
+                                >
+                                    <FiRefreshCcw className={`mr-2 ${systemStatus?.embedding_status?.running ? 'animate-spin' : ''}`} size={12} />
+                                    Reload Knowledge
+                                </button>
+                            </div>
+                        </Card>
+                    </div>
+
+                    <div className="border-b border-gray-800 my-4"></div>
+
                     {/* Stats Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                         <Card className="p-6">
@@ -382,7 +563,7 @@ const AdminDashboard = () => {
                     </Card>
                 </div>
             )}
-        </DashboardLayout>
+        </>
     );
 };
 

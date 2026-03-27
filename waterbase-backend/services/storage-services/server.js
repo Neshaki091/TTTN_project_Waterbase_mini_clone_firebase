@@ -11,6 +11,12 @@ const STORAGE_PATH = process.env.STORAGE_PATH || './storage';
 const mongoose = require('mongoose');
 
 app.use(express.json());
+
+// Public health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', service: 'storage-service' });
+});
+
 app.use('/', require('./src/routes/storage.routes'));
 
 // Connect to MongoDB (Required for Auth Middleware)
@@ -19,15 +25,11 @@ mongoose.connect(MONGO_URI)
     .then(() => console.log('✅ MongoDB connected for Storage Service'))
     .catch(err => console.error('❌ MongoDB connection error:', err));
 
-// Health check
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', service: 'storage' });
-});
 
 // RabbitMQ Setup
-const { getInstance } = require('./shared/rabbitmq/client');
+const { getRabbit } = require('./shared/rabbitmq/client');
 const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://waterbase:waterbase123@rabbitmq:5672';
-const rabbitMQ = getInstance(RABBITMQ_URL);
+const rabbitMQ = getRabbit(RABBITMQ_URL);
 
 // Helper function to get directory size
 async function getDirectorySize(dirPath) {
@@ -58,6 +60,8 @@ async function getDirectorySize(dirPath) {
     }
 }
 
+const storageService = require('./src/services/storage.service');
+
 async function startServer() {
     try {
         await rabbitMQ.connect();
@@ -66,52 +70,7 @@ async function startServer() {
         // Setup RPC Handler for Stats
         await rabbitMQ.respondRPC('storage.stats.request', async (data) => {
             console.log('📥 Received stats request via RPC for appIds:', data.appIds);
-            try {
-                const { appIds } = data;
-
-                if (!appIds || !Array.isArray(appIds) || appIds.length === 0) {
-                    console.log('⚠️ No appIds provided, returning empty stats');
-                    return {};
-                }
-
-                // Get stats for each app
-                const statsPromises = appIds.map(async (appId) => {
-                    try {
-                        const appStoragePath = path.join(STORAGE_PATH, appId);
-                        const { size, count } = await getDirectorySize(appStoragePath);
-
-                        return {
-                            appId,
-                            totalFiles: count,
-                            totalSize: size
-                        };
-                    } catch (err) {
-                        console.error(`Error fetching storage stats for app ${appId}:`, err);
-                        return {
-                            appId,
-                            totalFiles: 0,
-                            totalSize: 0
-                        };
-                    }
-                });
-
-                const statsArray = await Promise.all(statsPromises);
-
-                // Convert array to object with appId as keys
-                const statsObject = {};
-                statsArray.forEach(stat => {
-                    statsObject[stat.appId] = {
-                        totalFiles: stat.totalFiles,
-                        totalSize: stat.totalSize
-                    };
-                });
-
-                console.log(`✅ Returning storage stats for ${appIds.length} apps`);
-                return statsObject;
-            } catch (err) {
-                console.error('❌ Error fetching storage stats:', err);
-                return {};
-            }
+            return storageService.getMultipleStatsRPC(data.appIds);
         });
 
         console.log('✅ RPC Responder listening on: storage.stats.request');

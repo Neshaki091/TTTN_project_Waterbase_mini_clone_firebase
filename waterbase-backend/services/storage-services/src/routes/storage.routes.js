@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const storageController = require('../controllers/storage.controller');
 const { authenticateUser, verifyApp } = require('../../shared/middlewares/auth.middleware');
+const quotaMiddleware = require('../middlewares/quota.middleware');
 
 // Multer setup for temp storage
 const upload = multer({
@@ -20,7 +21,7 @@ router.use(verifyApp);
 router.use(authenticateUser);
 
 // Protected routes
-router.post('/upload', upload.single('file'), storageController.uploadFile);
+router.post('/upload', quotaMiddleware.checkQuota, upload.single('file'), storageController.uploadFile);
 router.get('/files', storageController.listFiles);
 router.get('/stats', storageController.getStats);
 router.delete('/files/:filename', storageController.deleteFile);

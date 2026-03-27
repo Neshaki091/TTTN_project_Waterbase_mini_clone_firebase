@@ -22,9 +22,9 @@ app.get('/health', (req, res) => {
 });
 
 // RabbitMQ Setup
-const { getInstance } = require('./shared/rabbitmq/client');
+const { getRabbit } = require('./shared/rabbitmq/client');
 const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://waterbase:waterbase123@rabbitmq:5672';
-const rabbitMQ = getInstance(RABBITMQ_URL);
+const rabbitMQ = getRabbit(RABBITMQ_URL);
 
 // Import models
 const Document = require('./src/models/dynamicDocument.model');

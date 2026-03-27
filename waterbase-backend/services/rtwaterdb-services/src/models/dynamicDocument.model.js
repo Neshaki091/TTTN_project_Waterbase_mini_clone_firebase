@@ -7,6 +7,16 @@ const DynamicDocumentSchema = new mongoose.Schema(
             required: true,
             index: true,
         },
+        UsageService: {
+            storageSize: {
+                type: Number,
+                default: 0,
+            },
+            docCount: {
+                type: Number,
+                default: 0,
+            }
+        },
         collection: {
             type: String,
             required: true,

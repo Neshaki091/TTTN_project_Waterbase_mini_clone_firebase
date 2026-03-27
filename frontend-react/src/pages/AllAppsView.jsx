@@ -102,7 +102,7 @@ const AllAppsView = () => {
     };
 
     return (
-        <DashboardLayout>
+        <>
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-white mb-2">Tất cả ứng dụng</h1>
                 <p className="text-gray-400">Xem tất cả ứng dụng trên nền tảng</p>
@@ -260,7 +260,7 @@ const AllAppsView = () => {
                     </div>
                 </Card>
             )}
-        </DashboardLayout>
+        </>
     );
 };
 
